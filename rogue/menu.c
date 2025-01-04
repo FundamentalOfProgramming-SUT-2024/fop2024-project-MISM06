@@ -59,7 +59,7 @@ void message_box (char *msg) { //you can use it to interact with player
     wrefresh(win);
     delwin(win);
 }
-int do_menu_stuff (int num_op, char **option, int *slcted) {
+int do_menu_stuff (int num_op, char **option, int *slcted, char *username) {
     int selected = *slcted;
     WINDOW *menu = make_center_window();
     int ch;
@@ -70,6 +70,12 @@ int do_menu_stuff (int num_op, char **option, int *slcted) {
             mvwaddstr(menu, i + 1, 1, option[i]);
             if (i == selected) wattroff(menu, A_REVERSE);
         }
+        wattroff(menu, COLOR_PAIR(13));
+        wattron(menu, COLOR_PAIR(11));
+        if (username != NULL) mvwprintw(menu, center_line - 2, 1, "Username : %s", username);
+        else mvwprintw(menu, center_line - 2, 1, "No account loged in!");
+        wattroff(menu, COLOR_PAIR(11));
+        wattron(menu, COLOR_PAIR(13));
         wrefresh(menu);
         ch = wgetch(menu);
         switch(ch) {
@@ -102,6 +108,7 @@ user* register_user() {
 
     FILE *data = fopen("users_info.json", "r");
     if (!data) {
+        fclose(data);
         data = fopen("users_info.json", "w");
         fclose(data);
         data = fopen("users_info.json", "r");
@@ -192,7 +199,6 @@ user* register_user() {
     new_user->game_ended = 0;
     strcpy(new_user->username, ans[1]);
     strcpy(new_user->password, ans[2]);
-    
     struct json_object *new_object = json_object_new_object();
     json_object_object_add(new_object, "password", json_object_new_string(new_user->password));
     json_object_object_add(new_object, "total_gold", json_object_new_int(new_user->total_gold));
@@ -215,8 +221,89 @@ user* register_user() {
     wrefresh(win);
     delwin(win);
     for (int i = 0; i < num_msg; i++) free(ans[i]);
+    json_object_put(users);
     return new_user;
 }
+user* log_in_user() {
+    WINDOW *win = make_center_window();
+    // keypad(win, false);
+    wattron(win, COLOR_PAIR(13));
+    FILE *data = fopen("users_info.json", "r");
+    if (!data) {
+        message_box("There is no registered username!");
+        delwin(win);
+        fclose(data);
+        return NULL;
+    }
+    char buffer[1000];
+    if (!data) {
+        message_box("goh");
+    }
+    fread(buffer, 1, sizeof(buffer), data);
+    fclose(data);
+    struct json_object* users = json_tokener_parse(buffer);
+    if (!users) users = json_object_new_object();
+    char *msg[] = {"Username : ", "Password : "};
+    char *ans[10];
+    int num_msg = sizeof(msg) / sizeof(msg[0]);
+    for (int i = 0; i < num_msg; i++) {
+        ans[i] = (char *)malloc(30 * sizeof(char));
+        mvwaddstr(win, i + 1, 1, msg[i]);
+    }
+    struct json_object *user_object = json_object_new_object();
+    for (int i = 0; i < num_msg; i++) {
+        int valid = 0;
+        while (!valid) {
+            for (int j = 0; j < 30; j++) mvwaddch(win,i + 1, 1 + strlen(msg[i]) + j, ' ');
+            wmove(win, i + 1, 1 + strlen(msg[i]));
+            echo();
+            curs_set(1);
+            wrefresh(win);
+            wgetstr(win, ans[i]);
+            valid = 1;
+            if (!strcmp(msg[i], "Username : ")) {
+                struct json_object *garb;
+                if (!json_object_object_get_ex(users, ans[i], &garb)) {
+                    message_box("Username don't exist, register first!");
+                    wclear(win);
+                    wrefresh(win);
+                    delwin(win);
+                    for (int i = 0; i < num_msg; i++) free(ans[i]);
+                    json_object_put(users);
+                    return NULL;
+                } else {
+                    user_object = json_object_object_get(users, ans[i]);
+                }
+            }
+            if (!strcmp(msg[i], "Password : ")) {
+                if (strcmp(ans[i], json_object_get_string(json_object_object_get(user_object, "password")))) {
+                    valid = 0;
+                    message_box("Incorrect password");
+                }
+            }
+        }
+    }
+    user* new_user = (user *)malloc(sizeof(user));
+    new_user->username =(char *)malloc(30 * sizeof(char));
+    new_user->password = (char *)malloc(30 * sizeof(char));
+    new_user->total_gold = json_object_get_int(json_object_object_get(user_object, "total_gold"));
+    new_user->max_gold = json_object_get_int(json_object_object_get(user_object, "max_gold"));
+    new_user->game_started = json_object_get_int(json_object_object_get(user_object, "game_started"));
+    new_user->game_ended = json_object_get_int(json_object_object_get(user_object, "game_ended"));
+    strcpy(new_user->username, ans[0]);
+    strcpy(new_user->password, ans[1]);
+    
+    noecho();
+    curs_set(0);
+    wrefresh(win);
+    wclear(win);
+    wrefresh(win);
+    delwin(win);
+    for (int i = 0; i < num_msg; i++) free(ans[i]);
+    json_object_put(users);
+    return new_user;
+}
+
 
 int main() {
 
@@ -235,8 +322,9 @@ int main() {
     int opt, selected = 0;
     char *option[] = {"Continue game", "New game", "Log in", "Sign up", "Scoreboard", "Setting", "Quit game"};
     user *player;
+    char *user_name_current = NULL;
     do {
-        opt = do_menu_stuff(sizeof(option) / sizeof(option[0]), option, &selected);
+        opt = do_menu_stuff(sizeof(option) / sizeof(option[0]), option, &selected, user_name_current);
         if (!strcmp("Continue game", option[opt])) {
             message_box("comming soon!");
         }
@@ -244,7 +332,13 @@ int main() {
             message_box("comming soon!!");
         }
         if (!strcmp("Log in", option[opt])) {
-            message_box("comming soon!!!");
+            // message_box("comming soon!!!");
+            player = log_in_user();
+            if (player != NULL) {
+                message_box("Log in was successfull.");
+                if (user_name_current == NULL) user_name_current = (char *)malloc(30 * sizeof(char));
+                strcpy(user_name_current, player->username);
+            }
         }
         if (!strcmp("Sign up", option[opt])) {
             user *new_user = register_user();
