@@ -12,6 +12,7 @@
 #define default_music ""
 
 typedef struct user_type {
+    int is_guest;
     char *username;
     char *password;
     int total_gold;
@@ -101,14 +102,10 @@ int do_menu_stuff (int num_op, char **option, int *slcted, char *username) {
     return selected;
 }
 user* register_user() {
-
     WINDOW *win = make_center_window();
-    // keypad(win, false);
     wattron(win, COLOR_PAIR(13));
-
     FILE *data = fopen("users_info.json", "r");
     if (!data) {
-        fclose(data);
         data = fopen("users_info.json", "w");
         fclose(data);
         data = fopen("users_info.json", "r");
@@ -191,6 +188,7 @@ user* register_user() {
         }
     }
     user* new_user = (user *)malloc(sizeof(user));
+    new_user->is_guest = 0;
     new_user->username =(char *)malloc(30 * sizeof(char));
     new_user->password = (char *)malloc(30 * sizeof(char));
     new_user->total_gold = 0;
@@ -205,6 +203,7 @@ user* register_user() {
     json_object_object_add(new_object, "max_gold", json_object_new_int(new_user->max_gold));
     json_object_object_add(new_object, "game_started", json_object_new_int(new_user->game_started));
     json_object_object_add(new_object, "game_ended", json_object_new_int(new_user->game_ended));
+    json_object_object_add(new_object, "is_guest", json_object_new_int(new_user->is_guest));
     json_object_object_add(users, new_user->username, new_object);
 
     data = fopen("users_info.json", "w");
@@ -226,13 +225,31 @@ user* register_user() {
 }
 user* log_in_user() {
     WINDOW *win = make_center_window();
-    // keypad(win, false);
     wattron(win, COLOR_PAIR(13));
+    mvwaddstr(win, 1, 1, "For log in as 'guest' press 'F1'");
+    wrefresh(win);
+    int chh = wgetch(win);
+    if (chh == KEY_F(1)) {
+        user* new_user = (user *)malloc(sizeof(user));
+        new_user->username =(char *)malloc(30 * sizeof(char));
+        new_user->password = (char *)malloc(30 * sizeof(char));
+        new_user->total_gold = 0;
+        new_user->max_gold = 0;
+        new_user->game_started = 0;
+        new_user->game_ended = 0;
+        new_user->is_guest = 1;
+        strcpy(new_user->username, "GUEST");
+        strcpy(new_user->password, "");
+        wclear(win);
+        wrefresh(win);
+        delwin(win);
+        // message_box("You've loged in as GUEST");
+        return new_user;
+    }
     FILE *data = fopen("users_info.json", "r");
     if (!data) {
         message_box("There is no registered username!");
         delwin(win);
-        fclose(data);
         return NULL;
     }
     char buffer[1000];
@@ -290,6 +307,7 @@ user* log_in_user() {
     new_user->max_gold = json_object_get_int(json_object_object_get(user_object, "max_gold"));
     new_user->game_started = json_object_get_int(json_object_object_get(user_object, "game_started"));
     new_user->game_ended = json_object_get_int(json_object_object_get(user_object, "game_ended"));
+    new_user->is_guest = 0;
     strcpy(new_user->username, ans[0]);
     strcpy(new_user->password, ans[1]);
     
@@ -351,7 +369,7 @@ int main() {
             message_box("comming soon!!!!!!");
         }
         if (!strcmp("Quit game", option[opt])) {
-            message_box("Byeeeeeeee:_(");
+            message_box("Have a good life champ :_)");
         }
     } while (strcmp(option[opt], "Quit game"));
 
