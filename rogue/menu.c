@@ -18,9 +18,6 @@ typedef struct user_type {
     int max_gold;
     int game_started;
     int game_ended;
-    int difficulty;
-    int color_of_hero;
-    char *music;
 }user;
 
 void initial_page() {
@@ -193,23 +190,16 @@ user* register_user() {
     new_user->max_gold = 0;
     new_user->game_started = 0;
     new_user->game_ended = 0;
-    new_user->difficulty = dif_normal;
-    new_user->color_of_hero = default_color;
-    new_user->music = (char *)malloc(30 * sizeof(char));
     strcpy(new_user->username, ans[1]);
     strcpy(new_user->password, ans[2]);
-    strcpy(new_user->music, default_music);
     
-    struct json_object *user_arr = json_object_new_array();
-    json_object_array_add(user_arr, json_object_new_string(new_user->password));
-    json_object_array_add(user_arr, json_object_new_int(new_user->total_gold));
-    json_object_array_add(user_arr, json_object_new_int(new_user->max_gold));
-    json_object_array_add(user_arr, json_object_new_int(new_user->game_started));
-    json_object_array_add(user_arr, json_object_new_int(new_user->game_ended));
-    json_object_array_add(user_arr, json_object_new_int(new_user->difficulty));
-    json_object_array_add(user_arr, json_object_new_int(new_user->color_of_hero));
-    json_object_array_add(user_arr, json_object_new_string(new_user->music));
-    json_object_object_add(users, new_user->username, user_arr);
+    struct json_object *new_object = json_object_new_object();
+    json_object_object_add(new_object, "password", json_object_new_string(new_user->password));
+    json_object_object_add(new_object, "total_gold", json_object_new_int(new_user->total_gold));
+    json_object_object_add(new_object, "max_gold", json_object_new_int(new_user->max_gold));
+    json_object_object_add(new_object, "game_started", json_object_new_int(new_user->game_started));
+    json_object_object_add(new_object, "game_ended", json_object_new_int(new_user->game_ended));
+    json_object_object_add(users, new_user->username, new_object);
 
     data = fopen("users_info.json", "w");
     if (!data) {
@@ -224,15 +214,15 @@ user* register_user() {
     wclear(win);
     wrefresh(win);
     delwin(win);
+    for (int i = 0; i < num_msg; i++) free(ans[i]);
     return new_user;
 }
-
 
 int main() {
 
     initscr();
     curs_set(0);
-    // noecho();
+    noecho();
     start_color();
     init_pair(11, COLOR_RED, COLOR_BLACK);
     init_pair(12, COLOR_BLUE, COLOR_BLACK);
@@ -244,6 +234,7 @@ int main() {
 
     int opt, selected = 0;
     char *option[] = {"Continue game", "New game", "Log in", "Sign up", "Scoreboard", "Setting", "Quit game"};
+    user *player;
     do {
         opt = do_menu_stuff(sizeof(option) / sizeof(option[0]), option, &selected);
         if (!strcmp("Continue game", option[opt])) {
@@ -257,7 +248,7 @@ int main() {
         }
         if (!strcmp("Sign up", option[opt])) {
             user *new_user = register_user();
-            if (new_user != NULL) message_box("Registered successfully:)");
+            if (new_user != NULL) message_box("Registered successfully, now log in to your account:)");
         }
         if (!strcmp("Scoreboard", option[opt])) {
             message_box("comming soon!!!!!");
