@@ -5,6 +5,65 @@
 
 #include "menu.h"
 
+WINDOW* remnant = NULL;
+
+void set_colors () {
+    init_pair(RED_ON_BLACK, COLOR_RED, BLACK);
+    init_pair(BLUE_ON_BLACK, COLOR_BLUE, BLACK);
+    init_pair(CYAN_ON_BLACK, COLOR_CYAN, BLACK);
+    init_color(PURE_YELLOW, 1000, 1000, 0);
+    init_pair(YELLOW_ON_BLACK, PURE_YELLOW, BLACK);
+    init_pair(GREEN_ON_BLACK, COLOR_GREEN, BLACK);
+    init_color(GRAY, 500, 500, 500);
+    init_color(WHITE, 1000, 1000, 1000);
+    init_color(BLACK, 0, 0, 0);
+    init_pair(WHITE_ON_GRAY, WHITE, GRAY);
+    init_pair(WHITE_ON_BLACK, WHITE, BLACK);
+    init_pair(GARY_ON_BLACK, GRAY, BLACK);
+
+}
+
+void str_set(char **dest, char *src, int l) {
+    if (src == NULL) {
+        *dest = NULL;
+        return;
+    }
+    if (l == -1) l = strlen(src);
+    if (l == 0) l = 100;
+    *dest = (char *)malloc(l * sizeof(char));
+    strcpy(*dest, src);
+}
+char* catstr(char *str1, char *str2) {
+    int l1 = 0, l2 = 0;
+    if (str1 != NULL) l1 = strlen(str1);
+    if (str2 != NULL) l2 = strlen(str2);
+    int l = l1 + l2;
+    char *res = (char *)malloc(l * sizeof(char));
+    if (str1 == NULL && str2 == NULL) return NULL;
+    if (str1 == NULL) strcpy(res, str2);
+    else if (str2 == NULL) strcpy(res, str1);
+    else {
+        strcpy(res, str1);
+        strcat(res, str2);
+    } 
+    return res;
+}
+user* raw_user() {
+    user *new_user = (user *)malloc(sizeof(user));
+    str_set(&new_user->username, "raw_user", 0);
+    str_set(&new_user->last_save_of_game, catstr(new_user->username, "save.json"), 0);
+    str_set(&new_user->music, default_music, 0);
+    str_set(&new_user->password, "", 0);
+    new_user->difficulty = dif_normal;
+    new_user->game_ended = 0;
+    new_user->game_started = 0;
+    new_user->hero_color = default_color;
+    new_user->is_guest = 0;
+    new_user->max_gold = 0;
+    new_user->total_gold = 0;
+    return new_user;
+}
+
 void initial_page() {
     WINDOW *win = newwin(LINES, COLS, 0, 0);
     keypad(win, true);
@@ -31,6 +90,12 @@ WINDOW* make_center_window() {
     return win;
 }
 void message_box (char *msg) { //you can use it to interact with player
+    if (remnant != NULL) {
+        wclear(remnant);
+        wrefresh(remnant);
+        delwin(remnant);
+        remnant = NULL;
+    }
     WINDOW *win = newwin(3, strlen(msg) + 2, 0, 0);
     curs_set(0);
     noecho();
@@ -44,6 +109,23 @@ void message_box (char *msg) { //you can use it to interact with player
     wrefresh(win);
     delwin(win);
 }
+void message_box_no_end (char *msg) { //you can use it to interact with player
+    if (remnant != NULL) {
+        wclear(remnant);
+        wrefresh(remnant);
+        delwin(remnant);
+    }
+    WINDOW *win = newwin(3, strlen(msg) + 2, 0, 0);
+    curs_set(0);
+    noecho();
+    keypad(win, true);
+    wattron(win, A_BOLD | A_REVERSE | COLOR_PAIR(13));
+    box(win, ' ', ' ');
+    mvwaddstr(win, 1, 1, msg);
+    wrefresh(win);
+    remnant = win;
+}
+
 int do_menu_stuff (int num_op, char **option, int *slcted, char *username) {
     int selected = *slcted;
     WINDOW *menu = make_center_window();
@@ -175,7 +257,7 @@ user* register_user() {
     new_user->is_guest = 0;
     new_user->username =(char *)malloc(30 * sizeof(char));
     new_user->password = (char *)malloc(30 * sizeof(char));
-    new_user->last_save_of_game = (char *)malloc(30 * sizeof(char));
+    new_user->last_save_of_game = (char *)malloc(50 * sizeof(char));
     new_user->music = (char *)malloc(30 * sizeof(char));
     new_user->hero_color = default_color;
     new_user->total_gold = 0;

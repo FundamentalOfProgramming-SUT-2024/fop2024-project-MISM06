@@ -11,9 +11,7 @@ int main() {
     curs_set(0);
     noecho();
     start_color();
-    init_pair(11, COLOR_RED, COLOR_BLACK);
-    init_pair(12, COLOR_BLUE, COLOR_BLACK);
-    init_pair(13, COLOR_CYAN, COLOR_BLACK);
+    set_colors();
     keypad(stdscr, true);
     cbreak();
     refresh();
@@ -26,10 +24,19 @@ int main() {
     do {
         opt = do_menu_stuff(sizeof(option) / sizeof(option[0]), option, &selected, user_name_current);
         if (!strcmp("Continue game", option[opt])) {
+            if (user_name_current == NULL) {
+                message_box("Log in first!");
+                continue;
+            }
             message_box("comming soon!");
         }
         if (!strcmp("New game", option[opt])) {
-            message_box("comming soon!!");
+            if (user_name_current == NULL) {
+                message_box("Log in first!");
+                continue;
+            }
+            // message_box("comming soon!!");
+            
         }
         if (!strcmp("Log in", option[opt])) {
             // message_box("comming soon!!!");
@@ -45,10 +52,18 @@ int main() {
             if (new_user != NULL) message_box("Registered successfully, now log in to your account:)");
         }
         if (!strcmp("Scoreboard", option[opt])) {
-            message_box("comming soon!!!!!");
+            if (user_name_current == NULL) {
+                message_box("Log in first!");
+                continue;
+            }
+            message_box("comming soon!");
         }
         if (!strcmp("Setting", option[opt])) {
-            message_box("comming soon!!!!!!");
+            if (user_name_current == NULL) {
+                message_box("Log in first!");
+                continue;
+            }
+            message_box("comming soon!");
         }
         if (!strcmp("Quit game", option[opt])) {
             message_box("Have a good life champ :_)");

@@ -13,6 +13,20 @@
 #define dif_hard 2
 #define default_color 0
 #define default_music ""
+#define RED_ON_BLACK 11
+#define BLUE_ON_BLACK 12
+#define CYAN_ON_BLACK 13
+#define YELLOW_ON_BLACK 14
+#define GREEN_ON_BLACK 15
+#define PURE_YELLOW 21
+#define WHITE_ON_GRAY 16
+#define GARY_ON_BLACK 17
+#define WHITE_ON_BLACK 18
+#define GRAY 22
+#define WHITE 23
+#define BLACK 24
+
+extern WINDOW* remnant;
 
 typedef struct user_type {
     int is_guest;
@@ -28,9 +42,15 @@ typedef struct user_type {
     int hero_color;
 } user;
 
+void set_colors ();
+void str_set(char **dest, char *src, int l);
+char* catstr(char *str1, char *str2);
+user* raw_user();
+
 void initial_page();
 WINDOW* make_center_window();
 void message_box (char *msg);
+void message_box_no_end (char *msg);
 int do_menu_stuff (int num_op, char **option, int *slcted, char *username);
 user* register_user();
 user* log_in_user();
