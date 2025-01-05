@@ -1,25 +1,9 @@
-#include<ncurses.h>
-#include<string.h>
-#include<stdlib.h>
-#include<json-c/json.h>
+#include <ncurses.h>
+#include <string.h>
+#include <stdlib.h>
+#include <json-c/json.h>
 
-#define center_line 20
-#define center_col 60
-#define dif_easy 0
-#define dif_normal 1
-#define dif_hard 2
-#define default_color 0
-#define default_music ""
-
-typedef struct user_type {
-    int is_guest;
-    char *username;
-    char *password;
-    int total_gold;
-    int max_gold;
-    int game_started;
-    int game_ended;
-}user;
+#include "menu.h"
 
 void initial_page() {
     WINDOW *win = newwin(LINES, COLS, 0, 0);
@@ -74,7 +58,7 @@ int do_menu_stuff (int num_op, char **option, int *slcted, char *username) {
         wattroff(menu, COLOR_PAIR(13));
         wattron(menu, COLOR_PAIR(11));
         if (username != NULL) mvwprintw(menu, center_line - 2, 1, "Username : %s", username);
-        else mvwprintw(menu, center_line - 2, 1, "No account loged in!");
+        else mvwprintw(menu, center_line - 2, 1, "No account has loged in!");
         wattroff(menu, COLOR_PAIR(11));
         wattron(menu, COLOR_PAIR(13));
         wrefresh(menu);
@@ -191,12 +175,21 @@ user* register_user() {
     new_user->is_guest = 0;
     new_user->username =(char *)malloc(30 * sizeof(char));
     new_user->password = (char *)malloc(30 * sizeof(char));
+    new_user->last_save_of_game = (char *)malloc(30 * sizeof(char));
+    new_user->music = (char *)malloc(30 * sizeof(char));
+    new_user->hero_color = default_color;
     new_user->total_gold = 0;
     new_user->max_gold = 0;
     new_user->game_started = 0;
     new_user->game_ended = 0;
+    new_user->difficulty = dif_normal;
     strcpy(new_user->username, ans[1]);
     strcpy(new_user->password, ans[2]);
+    char temp[30];
+    strcpy(temp, new_user->username);
+    strcat(temp, "save.json");
+    strcpy(new_user->last_save_of_game, temp);
+    strcpy(new_user->music, default_music);
     struct json_object *new_object = json_object_new_object();
     json_object_object_add(new_object, "password", json_object_new_string(new_user->password));
     json_object_object_add(new_object, "total_gold", json_object_new_int(new_user->total_gold));
@@ -204,6 +197,10 @@ user* register_user() {
     json_object_object_add(new_object, "game_started", json_object_new_int(new_user->game_started));
     json_object_object_add(new_object, "game_ended", json_object_new_int(new_user->game_ended));
     json_object_object_add(new_object, "is_guest", json_object_new_int(new_user->is_guest));
+    json_object_object_add(new_object, "difficulty", json_object_new_int(new_user->difficulty));
+    json_object_object_add(new_object, "last_save_of_game", json_object_new_string(new_user->last_save_of_game));
+    json_object_object_add(new_object, "music", json_object_new_string(new_user->music));
+    json_object_object_add(new_object, "hero_color", json_object_new_int(new_user->hero_color));
     json_object_object_add(users, new_user->username, new_object);
 
     data = fopen("users_info.json", "w");
@@ -233,13 +230,19 @@ user* log_in_user() {
         user* new_user = (user *)malloc(sizeof(user));
         new_user->username =(char *)malloc(30 * sizeof(char));
         new_user->password = (char *)malloc(30 * sizeof(char));
+        // new_user->last_save_of_game = (char *)malloc(30 * sizeof(char));
+        new_user->music = (char *)malloc(30 * sizeof(char));
+        new_user->hero_color = default_color;
         new_user->total_gold = 0;
         new_user->max_gold = 0;
         new_user->game_started = 0;
         new_user->game_ended = 0;
         new_user->is_guest = 1;
+        new_user->difficulty = dif_normal;
         strcpy(new_user->username, "GUEST");
         strcpy(new_user->password, "");
+        // strcpy(new_user->last_save_of_game, strcat(new_user->username, "save.json"));
+        strcpy(new_user->music, default_music);
         wclear(win);
         wrefresh(win);
         delwin(win);
@@ -303,13 +306,19 @@ user* log_in_user() {
     user* new_user = (user *)malloc(sizeof(user));
     new_user->username =(char *)malloc(30 * sizeof(char));
     new_user->password = (char *)malloc(30 * sizeof(char));
+    new_user->last_save_of_game = (char *)malloc(30 * sizeof(char));
+    new_user->music = (char *)malloc(30 * sizeof(char));
+    new_user->hero_color = json_object_get_int(json_object_object_get(user_object, "hero_color"));
     new_user->total_gold = json_object_get_int(json_object_object_get(user_object, "total_gold"));
     new_user->max_gold = json_object_get_int(json_object_object_get(user_object, "max_gold"));
     new_user->game_started = json_object_get_int(json_object_object_get(user_object, "game_started"));
     new_user->game_ended = json_object_get_int(json_object_object_get(user_object, "game_ended"));
+    new_user->difficulty = json_object_get_int(json_object_object_get(user_object, "difficulty"));
     new_user->is_guest = 0;
     strcpy(new_user->username, ans[0]);
     strcpy(new_user->password, ans[1]);
+    strcpy(new_user->last_save_of_game, json_object_get_string(json_object_object_get(user_object, "last_save_of_game")));
+    strcpy(new_user->music, json_object_get_string(json_object_object_get(user_object, "music")));
     
     noecho();
     curs_set(0);
@@ -320,61 +329,4 @@ user* log_in_user() {
     for (int i = 0; i < num_msg; i++) free(ans[i]);
     json_object_put(users);
     return new_user;
-}
-
-
-int main() {
-
-    initscr();
-    curs_set(0);
-    noecho();
-    start_color();
-    init_pair(11, COLOR_RED, COLOR_BLACK);
-    init_pair(12, COLOR_BLUE, COLOR_BLACK);
-    init_pair(13, COLOR_CYAN, COLOR_BLACK);
-    keypad(stdscr, true);
-    cbreak();
-    refresh();
-    initial_page();
-
-    int opt, selected = 0;
-    char *option[] = {"Continue game", "New game", "Log in", "Sign up", "Scoreboard", "Setting", "Quit game"};
-    user *player;
-    char *user_name_current = NULL;
-    do {
-        opt = do_menu_stuff(sizeof(option) / sizeof(option[0]), option, &selected, user_name_current);
-        if (!strcmp("Continue game", option[opt])) {
-            message_box("comming soon!");
-        }
-        if (!strcmp("New game", option[opt])) {
-            message_box("comming soon!!");
-        }
-        if (!strcmp("Log in", option[opt])) {
-            // message_box("comming soon!!!");
-            player = log_in_user();
-            if (player != NULL) {
-                message_box("Log in was successfull.");
-                if (user_name_current == NULL) user_name_current = (char *)malloc(30 * sizeof(char));
-                strcpy(user_name_current, player->username);
-            }
-        }
-        if (!strcmp("Sign up", option[opt])) {
-            user *new_user = register_user();
-            if (new_user != NULL) message_box("Registered successfully, now log in to your account:)");
-        }
-        if (!strcmp("Scoreboard", option[opt])) {
-            message_box("comming soon!!!!!");
-        }
-        if (!strcmp("Setting", option[opt])) {
-            message_box("comming soon!!!!!!");
-        }
-        if (!strcmp("Quit game", option[opt])) {
-            message_box("Have a good life champ :_)");
-        }
-    } while (strcmp(option[opt], "Quit game"));
-
-
-    // getch();
-    endwin();
-    return 0;
 }
