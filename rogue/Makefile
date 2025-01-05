@@ -1,10 +1,10 @@
-all : program.out
+all : map.out
 
-program.out : program.o menu.o
-	gcc menu.o program.o -o program.out -lncurses -ljson-c
+map.out : map.o menu.o
+	gcc menu.o map.o -o map.out -lncurses -ljson-c
 
-menu.o : menu.c
+menu.o : menu.c menu.h
 	gcc -c menu.c -o menu.o
 
-program.o : program.c
-	gcc -c program.c -o program.o
+map.o : map.c menu.h
+	gcc -c map.c -o map.o

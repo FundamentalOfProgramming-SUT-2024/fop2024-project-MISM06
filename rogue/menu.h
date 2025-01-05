@@ -20,11 +20,15 @@
 #define GREEN_ON_BLACK 15
 #define PURE_YELLOW 21
 #define WHITE_ON_GRAY 16
-#define GARY_ON_BLACK 17
+#define GRAY_ON_BLACK 17
 #define WHITE_ON_BLACK 18
 #define GRAY 22
 #define WHITE 23
 #define BLACK 24
+#define RED_ON_GRAY 19
+#define GREEN_ON_GRAY 25
+#define RED 26
+#define YELLOW_ON_GRAY 27
 
 extern WINDOW* remnant;
 

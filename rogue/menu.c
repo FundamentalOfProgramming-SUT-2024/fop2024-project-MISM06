@@ -8,18 +8,23 @@
 WINDOW* remnant = NULL;
 
 void set_colors () {
-    init_pair(RED_ON_BLACK, COLOR_RED, BLACK);
-    init_pair(BLUE_ON_BLACK, COLOR_BLUE, BLACK);
-    init_pair(CYAN_ON_BLACK, COLOR_CYAN, BLACK);
     init_color(PURE_YELLOW, 1000, 1000, 0);
-    init_pair(YELLOW_ON_BLACK, PURE_YELLOW, BLACK);
-    init_pair(GREEN_ON_BLACK, COLOR_GREEN, BLACK);
     init_color(GRAY, 500, 500, 500);
     init_color(WHITE, 1000, 1000, 1000);
     init_color(BLACK, 0, 0, 0);
+    init_color(RED, 700, 0, 100);
+
+    init_pair(RED_ON_BLACK, RED, BLACK);
+    init_pair(BLUE_ON_BLACK, COLOR_BLUE, BLACK);
+    init_pair(CYAN_ON_BLACK, COLOR_CYAN, BLACK);
+    init_pair(YELLOW_ON_BLACK, PURE_YELLOW, BLACK);
+    init_pair(GREEN_ON_BLACK, COLOR_GREEN, BLACK);
     init_pair(WHITE_ON_GRAY, WHITE, GRAY);
     init_pair(WHITE_ON_BLACK, WHITE, BLACK);
-    init_pair(GARY_ON_BLACK, GRAY, BLACK);
+    init_pair(GRAY_ON_BLACK, GRAY, BLACK);
+    init_pair(RED_ON_GRAY, RED, GRAY);
+    init_pair(GREEN_ON_GRAY, COLOR_GREEN, GRAY);
+    init_pair(YELLOW_ON_GRAY, PURE_YELLOW, GRAY);    
 
 }
 
