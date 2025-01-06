@@ -26,16 +26,34 @@ chtype el_trap;
 chtype el_stair;
 chtype el_hidden_door;
 chtype el_password_door; //locked : red; unlocked : green;
+chtype el_password_door_unlocked;
 chtype el_password_maker;
 
 void init_elmnts () {
     srand(time(0));
     remnant = NULL;
     delta = 5;
-    line_lvl = LINES - delta - delta;
+    line_lvl = LINES - delta;
     col_lvl = COLS - delta - delta;
     starty_lvl = delta;
     startx_lvl = delta;
+    // h_line = ACS_HLINE | A_REVERSE | COLOR_PAIR(RED_ON_BLACK);
+    // v_line = ACS_VLINE | A_REVERSE | COLOR_PAIR(RED_ON_BLACK);
+    // ul_corner = ACS_ULCORNER | A_REVERSE | COLOR_PAIR(RED_ON_BLACK);
+    // ur_corner = ACS_URCORNER | A_REVERSE | COLOR_PAIR(RED_ON_BLACK);
+    // ll_corner = ACS_LLCORNER | A_REVERSE | COLOR_PAIR(RED_ON_BLACK);
+    // lr_corner = ACS_LRCORNER | A_REVERSE | COLOR_PAIR(RED_ON_BLACK);
+    // el_door = ACS_PLUS | A_REVERSE | COLOR_PAIR(GREEN_ON_BLACK);
+    // el_pillar = 'O' | COLOR_PAIR(WHITE_ON_GRAY);
+    // el_floor = '.' | COLOR_PAIR(GRAY_ON_BLACK) | A_REVERSE;
+    // el_road = '#' | COLOR_PAIR(GRAY_ON_BLACK) | A_REVERSE;
+    // el_window = '=' | COLOR_PAIR(RED_ON_BLACK) | A_REVERSE;
+    // el_trap = '^' | COLOR_PAIR(RED_ON_GRAY);
+    // el_stair = '<' | COLOR_PAIR(WHITE_ON_GRAY);
+    // el_hidden_door = '?' | COLOR_PAIR(GRAY_ON_BLACK) | A_REVERSE;
+    // el_password_door = '@' | COLOR_PAIR(RED_ON_GRAY);
+    // el_password_maker = '&' | COLOR_PAIR(YELLOW_ON_GRAY);
+
     h_line = ACS_HLINE | A_REVERSE | COLOR_PAIR(RED_ON_BLACK);
     v_line = ACS_VLINE | A_REVERSE | COLOR_PAIR(RED_ON_BLACK);
     ul_corner = ACS_ULCORNER | A_REVERSE | COLOR_PAIR(RED_ON_BLACK);
@@ -43,15 +61,16 @@ void init_elmnts () {
     ll_corner = ACS_LLCORNER | A_REVERSE | COLOR_PAIR(RED_ON_BLACK);
     lr_corner = ACS_LRCORNER | A_REVERSE | COLOR_PAIR(RED_ON_BLACK);
     el_door = ACS_PLUS | A_REVERSE | COLOR_PAIR(GREEN_ON_BLACK);
-    el_pillar = 'O' | COLOR_PAIR(WHITE_ON_GRAY);
-    el_floor = '.' | COLOR_PAIR(GRAY_ON_BLACK) | A_REVERSE;
+    el_pillar = 'O' | COLOR_PAIR(WHITE_ON_BLACK);
+    el_floor = '.' | COLOR_PAIR(GRAY_ON_BLACK);
     el_road = '#' | COLOR_PAIR(GRAY_ON_BLACK) | A_REVERSE;
     el_window = '=' | COLOR_PAIR(RED_ON_BLACK) | A_REVERSE;
-    el_trap = '^' | COLOR_PAIR(RED_ON_GRAY);
-    el_stair = '<' | COLOR_PAIR(WHITE_ON_GRAY);
-    el_hidden_door = '?' | COLOR_PAIR(GRAY_ON_BLACK) | A_REVERSE;
-    el_password_door = '@' | COLOR_PAIR(RED_ON_GRAY);
-    el_password_maker = '&' | COLOR_PAIR(YELLOW_ON_GRAY);
+    el_trap = '^' | COLOR_PAIR(RED_ON_BLACK);
+    el_stair = '<' | COLOR_PAIR(WHITE_ON_BLACK);
+    el_hidden_door = '?' | COLOR_PAIR(GRAY_ON_BLACK);
+    el_password_door = '@' | COLOR_PAIR(RED_ON_BLACK);
+    el_password_door_unlocked = '@' | COLOR_PAIR(GREEN_ON_BLACK);
+    el_password_maker = '&' | COLOR_PAIR(YELLOW_ON_BLACK);
 }
 
 typedef struct element_type {
@@ -108,6 +127,9 @@ int is_wall(chtype ch) {
     if (ch == ur_corner) return 1;
     if (ch == ll_corner) return 1;
     if (ch == lr_corner) return 1;
+    if (ch == h_line) return 1;
+    if (ch == v_line) return 1;
+    return 0;
 }
 
 int is_adjance(int y1, int x1, int y2, int x2) {
