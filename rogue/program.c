@@ -6,17 +6,19 @@
 #include "menu.h"
 
 int main() {
+    setlocale(LC_ALL, "");
 
     initscr();
     curs_set(0);
     noecho();
     start_color();
     set_colors();
+    init_elmnts();
     keypad(stdscr, true);
     cbreak();
     refresh();
     initial_page();
-
+    
     int opt, selected = 0;
     char *option[] = {"Continue game", "New game", "Log in", "Sign up", "Scoreboard", "Setting", "Quit game"};
     user *player;

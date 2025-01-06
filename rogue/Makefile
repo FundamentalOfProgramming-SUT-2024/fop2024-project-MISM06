@@ -1,7 +1,7 @@
 all : map.out
 
 map.out : map.o menu.o
-	gcc menu.o map.o -o map.out -lncurses -ljson-c
+	gcc menu.o map.o -o map.out -lncursesw -ljson-c
 
 menu.o : menu.c menu.h
 	gcc -c menu.c -o menu.o

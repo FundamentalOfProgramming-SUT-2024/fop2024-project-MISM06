@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <json-c/json.h>
+#include <time.h>
+#include <locale.h>
 
 #include "menu.h"
 
@@ -16,7 +18,7 @@ void set_colors () {
 
     init_pair(RED_ON_BLACK, RED, BLACK);
     init_pair(BLUE_ON_BLACK, COLOR_BLUE, BLACK);
-    init_pair(CYAN_ON_BLACK, COLOR_CYAN, BLACK);
+    init_pair(CYAN_ON_BLACK, COLOR_CYAN, COLOR_BLACK);
     init_pair(YELLOW_ON_BLACK, PURE_YELLOW, BLACK);
     init_pair(GREEN_ON_BLACK, COLOR_GREEN, BLACK);
     init_pair(WHITE_ON_GRAY, WHITE, GRAY);
@@ -51,6 +53,18 @@ char* catstr(char *str1, char *str2) {
         strcpy(res, str1);
         strcat(res, str2);
     } 
+    return res;
+}
+char* catnum(char *str, int x) {
+    int l = 0;
+    char *s = (char *)malloc(2 * sizeof(char));
+    s[1] = '\0';
+    s[0] = x + '0';
+    if (str == NULL) return s;
+    ++l;
+    char *res = (char *)malloc(l * sizeof(char));
+    strcpy(res, str);
+    strcat(res, s);
     return res;
 }
 user* raw_user() {
@@ -182,8 +196,9 @@ user* register_user() {
         data = fopen("users_info.json", "r");
     }
     char buffer[10000];
-    fread(buffer, 1, sizeof(buffer), data);
+    size_t fsz = fread(buffer, 1, sizeof(buffer), data);
     fclose(data);
+    buffer[fsz] = '\0';
     struct json_object* users = json_tokener_parse(buffer);
     if (!users) users = json_object_new_object();
     char *msg[] = {"Email : ", "Username : ", "Password : ", "Confirm password : "};
@@ -346,8 +361,9 @@ user* log_in_user() {
     if (!data) {
         message_box("goh");
     }
-    fread(buffer, 1, sizeof(buffer), data);
+    size_t fsz = fread(buffer, 1, sizeof(buffer), data);
     fclose(data);
+    buffer[fsz] = '\0';
     struct json_object* users = json_tokener_parse(buffer);
     if (!users) users = json_object_new_object();
     char *msg[] = {"Username : ", "Password : "};

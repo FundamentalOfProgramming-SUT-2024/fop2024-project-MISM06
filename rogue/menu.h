@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <json-c/json.h>
+#include <time.h>
+#include <locale.h>
 
 #ifndef menu_h_defined
 #define menu_h_defined
@@ -49,6 +51,7 @@ typedef struct user_type {
 void set_colors ();
 void str_set(char **dest, char *src, int l);
 char* catstr(char *str1, char *str2);
+char* catnum(char *str, int x);
 user* raw_user();
 
 void initial_page();

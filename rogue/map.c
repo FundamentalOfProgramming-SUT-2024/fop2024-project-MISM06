@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <json-c/json.h>
 #include <time.h>
+#include <locale.h>
 
 #include "menu.h"
 
@@ -97,13 +98,149 @@ typedef struct lvl_type {
     chtype **cell;
     chtype **hidden_cell;
     int **hidden_sit; //0 nothing; 1 hidden; 2 founded;
-    int **room_id;
+    // int **room_id;
 } lvl;
 
 typedef struct map_type {
     int lvl_num;
     lvl** lvls;
 } map;
+
+void save_map (map *mp, user *player) {
+    
+    struct json_object *saver = json_object_new_object();
+    struct json_object *mp_o = json_object_new_object();
+    json_object_object_add(mp_o, "lvl_num", json_object_new_int64(mp->lvl_num));
+    for (int i = 0; i < mp->lvl_num; i++) {
+        lvl *lv = mp->lvls[i];
+        struct json_object *lv_o = json_object_new_object();
+        struct json_object *cell = json_object_new_array();
+        struct json_object *hidden_cell = json_object_new_array();
+        struct json_object *hidden_sit = json_object_new_array();
+        json_object_object_add(lv_o, "room_num", json_object_new_int64(lv->room_num));
+        for (int y = 0; y < line_lvl; y++) {
+            for (int x = 0; x < col_lvl; x++) {
+                json_object_array_add(cell, json_object_new_int64(lv->cell[y][x]));
+                json_object_array_add(hidden_cell, json_object_new_int64(lv->hidden_cell[y][x]));
+                json_object_array_add(hidden_sit, json_object_new_int64(lv->hidden_sit[y][x]));
+            }
+        } 
+        json_object_object_add(lv_o, "cell", cell);
+        json_object_object_add(lv_o, "hidden_cell", hidden_cell);
+        json_object_object_add(lv_o, "hidden_sit", hidden_sit);
+        for (int j = 0; j < lv->room_num; j++) {
+            room* rm = lv->rooms[j];
+            struct json_object *rm_o = json_object_new_object();
+            json_object_object_add(rm_o, "starty", json_object_new_int64(rm->starty));
+            json_object_object_add(rm_o, "startx", json_object_new_int64(rm->startx));
+            json_object_object_add(rm_o, "h", json_object_new_int64(rm->h));
+            json_object_object_add(rm_o, "w", json_object_new_int64(rm->w));
+            json_object_object_add(rm_o, "door_num", json_object_new_int64(rm->door_num));
+
+            for (int k = 0; k < lv->rooms[j]->door_num; k++) {
+                struct json_object *dr_o = json_object_new_object();
+                json_object_object_add(dr_o, "y", json_object_new_int64(rm->door[j].y));
+                json_object_object_add(dr_o, "x", json_object_new_int64(rm->door[j].x));
+                json_object_object_add(rm_o, catnum("door", k), dr_o);
+            }
+
+            json_object_object_add(lv_o, catnum("rooms", j), rm_o);
+        }
+
+        json_object_object_add(mp_o, catnum("lvls", i), lv_o);
+    }
+
+    json_object_object_add(saver, "map", mp_o);
+
+    FILE *data = fopen(player->last_save_of_game, "w");
+    if (data) {
+        fprintf(data, "%s\n", json_object_to_json_string(saver));
+    } else {
+        message_box("Couldn't save your game, sorry!");
+    }
+    fclose(data);
+    json_object_put(saver);
+}
+
+map* load_map (user *player) {
+    FILE *data = fopen(player->last_save_of_game, "r");
+    if (!data) message_box("oh");
+    fseek(data, 0, SEEK_END);
+    size_t fsz = ftell(data);
+    fseek(data, 0, SEEK_SET);
+    char *buffer = (char *)malloc((fsz + 10) * sizeof(char));
+    fread(buffer, 1, fsz + 10, data);
+    fclose(data);
+    buffer[fsz] = '\0';
+
+    struct json_object *src = json_tokener_parse(buffer);
+    if (!src) message_box("nooo");
+
+    map *mp = (map *)malloc(sizeof(map));
+    struct json_object *mp_o = json_object_object_get(src, "map");
+    
+    mp->lvl_num = json_object_get_int64(json_object_object_get(mp_o, "lvl_num"));
+    mp->lvls = (lvl **)malloc(mp->lvl_num * sizeof(lvl *));
+    for (int i = 0; i < mp->lvl_num; i++) {
+
+        lvl *lv = (lvl *)malloc(sizeof(lvl));
+        struct json_object *lv_o = json_object_object_get(mp_o, catnum("lvls", i));
+        lv->room_num = json_object_get_int64(json_object_object_get(lv_o, "room_num"));
+
+        lv->cell = (chtype **)malloc(line_lvl * sizeof(chtype *));
+        struct json_object *cell = json_object_object_get(lv_o, "cell");
+        for (int y = 0; y < line_lvl; y++) {
+            lv->cell[y] = (chtype *)malloc(col_lvl * sizeof(chtype));
+            for (int x = 0; x < col_lvl; x++) {
+                lv->cell[y][x] = json_object_get_int64(json_object_array_get_idx(cell, y * col_lvl + x));
+            }
+        }
+
+        lv->hidden_cell = (chtype **)malloc(line_lvl * sizeof(chtype *));
+        struct json_object *hidden_cell = json_object_object_get(lv_o, "hidden_cell");
+        for (int y = 0; y < line_lvl; y++) {
+            lv->hidden_cell[y] = (chtype *)malloc(col_lvl * sizeof(chtype));
+            for (int x = 0; x < col_lvl; x++) {
+                lv->hidden_cell[y][x] = json_object_get_int64(json_object_array_get_idx(hidden_cell, y * col_lvl + x));
+            }
+        }
+
+        lv->hidden_sit = (int **)malloc(line_lvl * sizeof(int *));
+        struct json_object *hidden_sit = json_object_object_get(lv_o, "hidden_sit");
+        for (int y = 0; y < line_lvl; y++) {
+            lv->hidden_sit[y] = (int *)malloc(col_lvl * sizeof(int));
+            for (int x = 0; x < col_lvl; x++) {
+                lv->hidden_sit[y][x] = json_object_get_int64(json_object_array_get_idx(hidden_sit, y * col_lvl + x));
+            }
+        }
+
+        lv->rooms = (room **)malloc(lv->room_num * sizeof(room *));
+        for (int j = 0; j < lv->room_num; j++) {
+            struct json_object *rm_o = json_object_object_get(lv_o, catnum("rooms", j));
+            room *rm = (room *)malloc(sizeof(room));
+            rm->starty = json_object_get_int64(json_object_object_get(rm_o, "starty"));
+            rm->startx = json_object_get_int64(json_object_object_get(rm_o, "startx")); 
+            rm->h = json_object_get_int64(json_object_object_get(rm_o, "h"));
+            rm->w = json_object_get_int64(json_object_object_get(rm_o, "w"));
+            rm->door_num = json_object_get_int64(json_object_object_get(rm_o, "door_num"));
+            rm->door = (elmnt *)malloc(rm->door_num * sizeof(elmnt));
+            for (int k = 0; k < rm->door_num; k++) {
+                struct json_object *dr_o = json_object_object_get(rm_o, catnum("door", k));
+                rm->door[k].y = json_object_get_int64(json_object_object_get(dr_o, "y"));
+                rm->door[k].x = json_object_get_int64(json_object_object_get(dr_o, "x")); 
+            }
+
+            lv->rooms[j] = rm;
+        }
+
+        mp->lvls[i] = lv;
+    }
+
+    
+    json_object_put(src);
+    return mp;
+
+}
 
 int get_rand(int l, int r) {
     return l + (rand() % (r - l + 1));
@@ -318,7 +455,7 @@ void make_path (lvl *lv, chtype **cell, elmnt src, elmnt dest, int diff) {
         }
     }
 
-    if (diff == dif_hard) {
+    if (diff == dif_hard || diff == dif_normal) {
         mark[cnctor.y][cnctor.x] = 0;
         bfs(lv, cell, src, cnctor, mark);
         mark[dest.y][dest.x] = 0;
@@ -370,9 +507,9 @@ lvl* make_lvl(int diff) {
     for (int i = 0; i < line_lvl; i++) 
         lv->hidden_cell[i] = (chtype *)malloc(col_lvl * sizeof(chtype));
     
-    lv->room_id = (int **)malloc(line_lvl * sizeof(int *));
-    for (int i = 0; i < line_lvl; i++) 
-        lv->room_id[i] = (int *)malloc(col_lvl * sizeof(int));
+    // lv->room_id = (int **)malloc(line_lvl * sizeof(int *));
+    // for (int i = 0; i < line_lvl; i++) 
+    //     lv->room_id[i] = (int *)malloc(col_lvl * sizeof(int));
     
     lv->hidden_sit = (int **)malloc(line_lvl * sizeof(int *));
     for (int i = 0; i < line_lvl; i++) {
@@ -402,11 +539,11 @@ lvl* make_lvl(int diff) {
                 }   
             }
         } while (!ok);
-        for (int ii = starty; ii < starty + h; ii++) {
-            for (int j = startx; j < startx + w; j++) {
-                lv->room_id[ii][j] = i;
-            }
-        }
+        // for (int ii = starty; ii < starty + h; ii++) {
+        //     for (int j = startx; j < startx + w; j++) {
+        //         lv->room_id[ii][j] = i;
+        //     }
+        // }
         //door
         int door_num = get_rand(2, 2);
         lv->rooms[i] = make_room(h, w, door_num);
@@ -510,15 +647,16 @@ map* generate_map(user *player) {
     mp->lvls = (lvl **)malloc(mp->lvl_num * sizeof(lvl*));
     for (int i = 0; i < mp->lvl_num; i++) {
         mp->lvls[i] = make_lvl(player->difficulty);
-        // if (i == 0) message_box("Map is generating.");
-        // if (i == 1) message_box_no_end("wait more");
-        // if (i == 2) message_box_no_end("it's almost done!");
     }
+
     return mp;
 }
 
 int main() {
+    setlocale(LC_ALL, "");
+
     user *player = raw_user();
+    // player->difficulty = dif_hard;
     initscr();
     keypad(stdscr, true);
     curs_set(0);
@@ -529,12 +667,16 @@ int main() {
     refresh();
     // getch();
     message_box("start");
-    message_box_no_end("Please wait, don't press any key!");
-    map *new_map = generate_map(player);
-    message_box("Map generated successfully, press any key to continue.");
-    
-    message_box("press to show lvl");
+    // message_box_no_end("Please wait, don't press any key!");
+    map *new_mapp = generate_map(player);
+    // message_box("Map generated successfully, press any key to continue.");
+    save_map(new_mapp, player);
+    map *new_map = load_map(player);
+
+    message_box("map loaded, press to see lvls");
+    message_box(catnum("lvl_num = ", new_map->lvl_num));
     for (int i = 0; i < new_map->lvl_num; i++) {
+        message_box(catnum("lvl", i));
         lvl *lv = new_map->lvls[i];
         for (int i = 0; i < line_lvl; i++) {
             for (int j = 0; j < col_lvl; j++) {
@@ -544,9 +686,25 @@ int main() {
             }
         }
         refresh();
+        // getch();
+        // for (int i = 0; i < line_lvl; i++) {
+        //     for (int j = 0; j < col_lvl; j++) {
+        //         if (get_rand(0, 50) == 0) {
+        //             char *ch = "💀";
+
+        //             attron(COLOR_PAIR(YELLOW_ON_BLACK));
+        //             mvprintw(i, j, "%s", ch);
+        //         }
+        //     }
+        // }
+        // refresh();
         message_box("press to show next lvl");
         clear();
     }
+    // char *ch = "😂";
+    // mvprintw(5, 5, "%s", ch);
+    refresh();
+    getch();
     endwin();
     return 0;
 }
