@@ -4,6 +4,7 @@
 #include <json-c/json.h>
 
 #include "menu.h"
+#include "map.h"
 
 int main() {
     setlocale(LC_ALL, "");

@@ -31,6 +31,10 @@
 #define GREEN_ON_GRAY 25
 #define RED 26
 #define YELLOW_ON_GRAY 27
+#define PURPLE_DARK 28
+#define PURPLE_D_ON_BLACK 29
+#define DARK_BLUE 30
+#define BLUE_D_ON_BLACK 31
 
 extern WINDOW* remnant;
 

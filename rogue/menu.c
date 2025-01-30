@@ -11,11 +11,15 @@ WINDOW* remnant = NULL;
 
 void set_colors () {
     init_color(PURE_YELLOW, 1000, 1000, 0);
-    init_color(GRAY, 500, 500, 500);
+    init_color(GRAY, 500, 500, 700);
     init_color(WHITE, 1000, 1000, 1000);
     init_color(BLACK, 0, 0, 0);
     init_color(RED, 700, 0, 100);
+    init_color(PURPLE_DARK, 500, 0, 500);
+    init_color(DARK_BLUE, 0, 0, 1000); 
 
+    init_pair(BLUE_D_ON_BLACK, DARK_BLUE, BLACK);
+    init_pair(PURPLE_D_ON_BLACK, PURPLE_DARK, BLACK);
     init_pair(RED_ON_BLACK, RED, BLACK);
     init_pair(BLUE_ON_BLACK, COLOR_BLUE, BLACK);
     init_pair(CYAN_ON_BLACK, COLOR_CYAN, COLOR_BLACK);

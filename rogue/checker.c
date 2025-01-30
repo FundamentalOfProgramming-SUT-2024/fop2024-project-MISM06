@@ -1,26 +1,22 @@
 #include <ncurses.h>
-#include <locale.h>
 #include <string.h>
+#include <stdlib.h>
+#include <json-c/json.h>
+#include <time.h>
+#include <locale.h>
+#include <menu.h>
 
 int main() {
-    // Enable Unicode support
     setlocale(LC_ALL, "");
-
-    initscr();           // Initialize ncurses
-    noecho();            // Disable echo
-    curs_set(FALSE);     // Hide the cursor
-
-    // Draw a middle dot
-    // Unicode middle dot (U+00B7)
-
-    char *ch = "";
-    printw("%s", ch);
-    int x = strlen(ch);
-    mvprintw(10, 10, "%d", x);
-
-    refresh();           // Refresh the screen
-    getch();             // Wait for input
-    endwin();            // End ncurses mode
+    initscr();
+    curs_set(0);
+    refresh();
+    attron(A_BLINK | A_REVERSE);
+    char s[10] = "ၜo";
+    mvprintw(10, 10, "%s", s);
+    refresh();
+    getch();
+    endwin();
 
     return 0;
 }
