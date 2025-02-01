@@ -6,7 +6,6 @@
 #include <locale.h>
 
 #include "menu.h"
-// #include "map.h"
 
 int line_lvl;
 int col_lvl;
@@ -68,7 +67,7 @@ void init_elmnts () {
     srand(time(0));
     remnant = NULL;
     delta_y = 5;
-    delta_x = 30;
+    delta_x = 40;
     line_lvl = LINES - delta_y;
     col_lvl = COLS - delta_x;
     starty_lvl = delta_y;
@@ -121,8 +120,8 @@ void init_elmnts () {
     food_magical_attr = COLOR_PAIR(PURPLE_D_ON_BLACK);
     food_rotten_attr = COLOR_PAIR(RED_ON_BLACK);
 
-    hero = "\u2364";
-    hero_attr = A_BOLD | COLOR_PAIR(GRAY_ON_BLACK);
+    hero = "\u2362";
+    hero_attr = A_BOLD | COLOR_PAIR(WHITE_ON_BLACK);
 
 }
 
@@ -151,6 +150,17 @@ typedef struct pickable_things_type {
     int **cnt;
 } pickable_things;
 
+typedef struct enemy_type {
+    char look;
+    char *name;
+    chtype attr;
+    int max_hp;
+    int max_token;
+    int damage;
+    int **cnt;
+    int **hp;
+    int **token;
+} enemy;
 
 typedef struct lvl_type {
     elmnt up_stair;
@@ -174,12 +184,45 @@ typedef struct lvl_type {
     int treasure_room_id; //golden
     int enchant_room_id; //blue
 
+    int monster_num;
+    enemy **monster; // 0:deamon, 1 fire breathing, 2 giant, 3 snake, 4 undead; 
 
 } lvl;
 
+typedef struct INVENTORY_type {
+
+    int gold_cnt;
+
+    int food_golden_cnt;
+    int food_magical_cnt;
+    int food_reg_cnt;
+    int food_rotten_cnt;
+    char *food_def;
+    chtype food_def_attr;
+
+    int weapon_arrow_cnt;
+    int weapon_dagger_cnt;
+    int weapon_mace_cnt;
+    int weapon_magic_wand_cnt;
+    int weapon_sword_cnt;
+    char *weapon_def;
+    chtype weapon_def_attr;
+
+    int talisman_damage_cnt;
+    int talisman_health_cnt;
+    int talisman_speed_cnt;
+    char *talisman_def;
+    chtype talisman_def_attr;
+
+} Inventory;
+
 typedef struct map_type {
+    int curr_lvl;
+    elmnt hero_place;
     int lvl_num;
     lvl** lvls;
+    Inventory *inv;
+    int time;
 } map;
 
 int get_rand(int l, int r) {
@@ -200,17 +243,17 @@ room* make_room(int h, int w, int door_num) {
 }
 
 int is_wall(chtype ch) {
-    if (ch & ACS_ULCORNER) return 1;
-    if (ch & ACS_URCORNER) return 1;
-    if (ch & ACS_LLCORNER) return 1;
-    if (ch & ACS_LRCORNER) return 1;
-    if (ch & ACS_HLINE) return 1;
-    if (ch & ACS_VLINE) return 1;
+    if ((ch & ACS_ULCORNER) == ACS_ULCORNER) return 1;
+    if ((ch & ACS_URCORNER) == ACS_URCORNER) return 1;
+    if ((ch & ACS_LLCORNER) == ACS_LLCORNER) return 1;
+    if ((ch & ACS_LRCORNER) == ACS_LRCORNER) return 1;
+    if ((ch & ACS_HLINE) == ACS_HLINE) return 1;
+    if ((ch & ACS_VLINE) == ACS_VLINE) return 1;
     return 0;
 }
 
 int is_this_floor(chtype ch) {
-    if (ch & '.') return 1;
+    if ((ch & '.') == '.') return 1;
     return 0;
 }
 
@@ -286,7 +329,7 @@ elmnt * give_set_el_in_room(lvl *lv, int rm_id) {
     return res;
 }
 
-elmnt * give_free_elmnt_in_room(lvl *lv, int rm_id) {
+elmnt * give_free_elmnt_in_room (lvl *lv, int rm_id) {
     int starty = lv->rooms[rm_id]->starty;
     int startx = lv->rooms[rm_id]->startx;
     int h = lv->rooms[rm_id]->h;
@@ -298,6 +341,30 @@ elmnt * give_free_elmnt_in_room(lvl *lv, int rm_id) {
         y = starty + get_rand(1, h - 2);
         x = startx + get_rand(1, w - 2);
         ok = dont_cover_doors(lv->rooms[rm_id], y, x) && !is_filled(lv, y, x);
+    } while(!ok);
+    elmnt *res = (elmnt *)malloc(sizeof(elmnt));
+    res->y = y;
+    res->x = x;
+    return res;
+}
+
+
+elmnt * give_free_elmnt_in_room_monster (lvl *lv, int rm_id) {
+    int starty = lv->rooms[rm_id]->starty;
+    int startx = lv->rooms[rm_id]->startx;
+    int h = lv->rooms[rm_id]->h;
+    int w = lv->rooms[rm_id]->w;
+    int y, x;
+    int ok = 0;
+    int c = 0;
+    do {
+        y = starty + get_rand(1, h - 2);
+        x = startx + get_rand(1, w - 2);
+        int ok2 = 1;
+        for (int i = 0; i < lv->monster_num; i++) {
+            if (lv->monster[i]->cnt[y][x]) ok2 = 0;
+        }
+        ok = dont_cover_doors(lv->rooms[rm_id], y, x) && !is_filled(lv, y, x) && ok2;
     } while(!ok);
     elmnt *res = (elmnt *)malloc(sizeof(elmnt));
     res->y = y;
@@ -507,19 +574,19 @@ lvl* make_lvl(int diff, int is_first_lvl, int is_last_lvl) {
     if (lv->nightmare_room_id) {
         lv->nightmare_room_id = lv->room_num;
         ++(lv->room_num);
-    } else lv->nightmare_room_id = -1;
+    } else lv->nightmare_room_id = 5000;
 
     lv->enchant_room_id = get_rand(0, 1);
     if (lv->enchant_room_id) {
         lv->enchant_room_id = lv->room_num;
         ++(lv->room_num);
-    } else lv->enchant_room_id = -1;
+    } else lv->enchant_room_id = 5000;
 
     lv->treasure_room_id = is_last_lvl;
     if (lv->treasure_room_id) {
         lv->treasure_room_id = lv->room_num;
         ++(lv->room_num);
-    } else lv->treasure_room_id = -1;
+    } else lv->treasure_room_id = 5000;
 
     lv->rooms = (room **)malloc(lv->room_num * sizeof(room *));
     lv->cell = (chtype **)malloc(line_lvl * sizeof(chtype *));
@@ -554,7 +621,7 @@ lvl* make_lvl(int diff, int is_first_lvl, int is_last_lvl) {
 
     fill_inside(0, lv->cell, 0, 0, line_lvl, col_lvl);
     fill_inside(0, lv->hidden_cell, 0, 0, line_lvl, col_lvl);
-    make_border(h_line ^ ACS_HLINE, lv->cell, 0, 0, line_lvl, col_lvl);
+    make_border(h_line ^ ACS_HLINE ^ COLOR_PAIR(RED_ON_BLACK) | COLOR_PAIR(BLUE_ON_BLACK), lv->cell, 0, 0, line_lvl, col_lvl);
 
     //rooms
     for (int i = 0; i < lv->room_num; i++) {
@@ -728,7 +795,7 @@ lvl* make_lvl(int diff, int is_first_lvl, int is_last_lvl) {
         }
         //
         //trap
-        set_el_in_room(el_trap, lv, i, get_rand(0, diff), 1);
+        set_el_in_room(el_trap, lv, i, get_rand(0, diff), 0);
         //
     }
     
@@ -743,16 +810,173 @@ lvl* make_lvl(int diff, int is_first_lvl, int is_last_lvl) {
     
     if (!is_last_lvl) {
         elmnt *stair;
-        int rm_id = get_rand(1 + diff, lv->room_num - 1 - (diff / 2));
+        int rm_id = get_rand(1, lv->reg_room_num - 1);
         stair = give_set_el_in_room(lv, rm_id);
         lv->down_stair.y = stair->y;
         lv->down_stair.x = stair->x;
-        add_cell(el_stair, lv, stair->y, stair->x, rm_id);
+        add_cell(el_stair, lv, stair->y, stair->x, 0);
     }
     
     //roads
     make_roads(lv, diff, lv->reg_room_num);
+
     return lv;
+}
+
+void add_monsters(lvl *lv, int diff) {
+    //monster
+    lv->monster_num = 5;
+    lv->monster = (enemy **)malloc(lv->monster_num * sizeof(enemy *));
+    for (int i = 0; i < lv->monster_num; i++) {
+        lv->monster[i] = (enemy *)malloc(sizeof(enemy));
+        lv->monster[i]->cnt = (int **)malloc(line_lvl * sizeof(int *));
+        for (int j = 0; j < line_lvl; j++) {
+            lv->monster[i]->cnt[j] = (int *)malloc(col_lvl * sizeof(int));
+            for (int k = 0; k < col_lvl; k++) {
+                lv->monster[i]->cnt[j][k] = 0;
+            }
+        }
+        lv->monster[i]->hp = (int **)malloc(line_lvl * sizeof(int *));
+        for (int j = 0; j < line_lvl; j++) {
+            lv->monster[i]->hp[j] = (int *)malloc(col_lvl * sizeof(int));
+            for (int k = 0; k < col_lvl; k++) {
+                lv->monster[i]->hp[j][k] = 0;
+            }
+        }
+        lv->monster[i]->token = (int **)malloc(line_lvl * sizeof(int *));
+        for (int j = 0; j < line_lvl; j++) {
+            lv->monster[i]->token[j] = (int *)malloc(col_lvl * sizeof(int));
+            for (int k = 0; k < col_lvl; k++) {
+                lv->monster[i]->token[j][k] = 0;
+            }
+        }
+    }
+    for (int i = 0; i < lv->monster_num; i++) {
+        enemy *mon = lv->monster[i];
+        int c;
+        switch (i) {
+            case 0 : 
+                mon->look = 'D';
+                mon->name = "Deamon";
+                mon->max_hp = 5;
+                mon->max_token = 0;
+                mon->damage = 10;
+                c = 67;
+                init_pair(c, c, BLACK);
+                mon->attr = A_BOLD | COLOR_PAIR(c); 
+                break;
+            case 1 : 
+                mon->look = 'F'; 
+                mon->name = "Fire breathing monster"; 
+                mon->max_hp = 10;
+                mon->max_token = 0;
+                mon->damage = 20;
+                c = 220;
+                init_pair(c, c, BLACK);
+                mon->attr = A_BOLD | COLOR_PAIR(c); 
+                break;
+            case 2 : 
+                mon->look = 'G'; 
+                mon->name = "Giant"; 
+                mon->max_hp = 15;
+                mon->max_token = 5;
+                mon->damage = 15;
+                c = 174;
+                init_pair(c, c, BLACK);
+                mon->attr = A_BOLD | COLOR_PAIR(c); 
+                break;
+            case 3 : 
+                mon->look = 'S'; 
+                mon->name = "Snake";
+                mon->max_hp = 20;
+                mon->max_token = 1000;
+                mon->damage = 15; 
+                c = 208;
+                init_pair(c, c, BLACK);
+                mon->attr = A_BOLD | COLOR_PAIR(c); 
+                break;
+            case 4 : 
+                mon->look = 'U'; 
+                mon->name = "Undead"; 
+                mon->max_hp = 30;
+                mon->max_token = 5;
+                mon->damage = 35;
+                c = 196;
+                init_pair(c, c, BLACK);
+                mon->attr = A_BOLD | COLOR_PAIR(c); 
+                break;
+            default : break;
+        }
+        for (int j = 0; j < lv->room_num; j++) {
+            int num;
+            if (j < lv->reg_room_num) {
+                switch(mon->look) {
+                    case 'D':
+                        num = get_rand(0, 2 + diff - 1);
+                        break;
+                    case 'F':
+                        num = get_rand(0, 2 + diff - 1);
+                        break;
+                    case 'G':
+                        num = get_rand(0, 2 + diff - 1);
+                        break;
+                    case 'S':
+                        num = get_rand(0, 1 + diff - 1);
+                        break;
+                    case 'U':
+                        num = get_rand(0, 1 + diff - 1);
+                        break;
+                    default : break;
+                }
+            } else if (j == lv->treasure_room_id) {
+                switch(mon->look) {
+                    case 'D':
+                        num = get_rand(1, 2 + diff - 1);
+                        break;
+                    case 'F':
+                        num = get_rand(1, 2 + diff - 1);
+                        break;
+                    case 'G':
+                        num = get_rand(1, 2 + diff - 1);
+                        break;
+                    case 'S':
+                        num = get_rand(1, 2 + diff - 1);
+                        break;
+                    case 'U':
+                        num = get_rand(1, 2 + diff - 1);
+                        break;
+                    default : break;
+                }
+            } else if (j == lv->nightmare_room_id) {
+                switch(mon->look) {
+                    case 'D':
+                        num = get_rand(3, 4 + diff - 1);
+                        break;
+                    case 'F':
+                        num = get_rand(3, 4 + diff - 1);
+                        break;
+                    case 'G':
+                        num = get_rand(2, 3 + diff - 1);
+                        break;
+                    case 'S':
+                        num = get_rand(1, 3 + diff - 1);
+                        break;
+                    case 'U':
+                        num = get_rand(1, 3 + diff - 1);
+                        break;
+                    default : break;
+                }
+            } else num = 0; //enchant room;
+              
+            while (num--) {
+                elmnt *temp;
+                temp = give_free_elmnt_in_room_monster(lv, j);
+                mon->cnt[temp->y][temp->x] += 1;
+                if (mon->look == 'S') mon->token[temp->y][temp->x] = 1000;
+                mon->hp[temp->y][temp->x] = mon->max_hp;
+            }
+        }
+    }
 }
 
 void add_pickable_things (int diff, lvl *lv) {
@@ -935,7 +1159,7 @@ void add_pickable_things (int diff, lvl *lv) {
                 elmnt *temp = give_free_elmnt_in_room(lv, i);
                 int y = temp->y, x = temp->x;
                 golds->pickable_sit[y][x] = 1;
-                golds->cnt[y][x] = 5;
+                golds->cnt[y][x] = get_rand(2, 5);
                 golds->attr[y][x] = reg_attr;
                 strcpy(golds->cells[y][x], gold_regular);
             }
@@ -943,7 +1167,7 @@ void add_pickable_things (int diff, lvl *lv) {
                 elmnt *temp = give_free_elmnt_in_room(lv, i);
                 int y = temp->y, x = temp->x;
                 golds->pickable_sit[y][x] = 1;
-                golds->cnt[y][x] = 1;
+                golds->cnt[y][x] = get_rand(1, 2);
                 golds->attr[y][x] = black_attr;
                 strcpy(golds->cells[y][x], gold_black);
             }
@@ -954,7 +1178,7 @@ void add_pickable_things (int diff, lvl *lv) {
                 elmnt *temp = give_free_elmnt_in_room(lv, i);
                 int y = temp->y, x = temp->x;
                 golds->pickable_sit[y][x] = 1;
-                golds->cnt[y][x] = 5;
+                golds->cnt[y][x] = get_rand(2, 7);
                 golds->attr[y][x] = reg_attr;
                 strcpy(golds->cells[y][x], gold_regular);
             }
@@ -962,7 +1186,7 @@ void add_pickable_things (int diff, lvl *lv) {
                 elmnt *temp = give_free_elmnt_in_room(lv, i);
                 int y = temp->y, x = temp->x;
                 golds->pickable_sit[y][x] = 1;
-                golds->cnt[y][x] = 1;
+                golds->cnt[y][x] = get_rand(1, 3);
                 golds->attr[y][x] = black_attr;
                 strcpy(golds->cells[y][x], gold_black);
             }
@@ -1454,15 +1678,49 @@ map* generate_map(user *player) {
     for (int i = 0; i < mp->lvl_num; i++) {
         mp->lvls[i] = make_lvl(player->difficulty, i == 0, i == (mp->lvl_num - 1));
     }
-
+    // message_box("levels mad");
     for (int i = 0; i < mp->lvl_num; i++) {
-        // message_box(catnum("lvl ", i));
+        // message_box(catnum("pick lvl ", i));
         add_pickable_things (player->difficulty, mp->lvls[i]);
     }
+    for (int i = 0; i < mp->lvl_num; i++) {
+        // message_box(catnum("lvl ", i));
+        add_monsters(mp->lvls[i], player->difficulty);
+    }
+    mp->curr_lvl = 0;
+    mp->hero_place.y = mp->lvls[0]->up_stair.y;
+    mp->hero_place.x = mp->lvls[0]->up_stair.x;
+
+    mp->inv = (Inventory *)malloc(sizeof(Inventory));
+    
+    mp->inv->gold_cnt = 0;
+
+    mp->inv->food_golden_cnt = 0;
+    mp->inv->food_magical_cnt = 0;
+    mp->inv->food_reg_cnt = 0;
+    mp->inv->food_rotten_cnt = 0;
+    mp->inv->food_def = food_reg;
+    mp->inv->food_def_attr = food_reg_attr;
+
+    mp->inv->weapon_arrow_cnt = 0;
+    mp->inv->weapon_dagger_cnt = 0;
+    mp->inv->weapon_mace_cnt = 1;
+    mp->inv->weapon_magic_wand_cnt = 0;
+    mp->inv->weapon_sword_cnt = 0;
+    mp->inv->weapon_def = weapon_mace;
+    mp->inv->weapon_def_attr = weapon_mace_attr;
+
+    mp->inv->talisman_damage_cnt = 0;
+    mp->inv->talisman_health_cnt = 0;
+    mp->inv->talisman_speed_cnt = 0; 
+    mp->inv->talisman_def = talisman_health;
+    mp->inv->talisman_def_attr = talisman_health_attr;
+
+    mp->time = 0;
 
     return mp;
 }
-
+/*
 void save_map (map *mp, user *player) {
     
     struct json_object *saver = json_object_new_object();
@@ -1604,65 +1862,4 @@ map* load_map (user *player) {
     return mp;
 
 }
-
-int main() {
-    setlocale(LC_ALL,"");
-    initscr();
-    curs_set(0);
-    noecho();
-    start_color();
-    use_default_colors();
-    set_colors();
-    init_elmnts();
-    keypad(stdscr, true);
-    cbreak();
-    refresh();
-    user *player = raw_user();
-    map *mp = generate_map(player);
-    for (int l = 0; l < mp->lvl_num; l++) {
-        lvl *lv = mp->lvls[l];
-        for (int i = 0; i < line_lvl; i++) {
-            for (int j = 0; j < col_lvl; j++) {
-                if (lv->cell[i][j] == 0 && lv->hidden_sit[i][j] == 0) continue;
-                if (lv->hidden_sit[i][j]) {
-                    mvaddch(starty_lvl + i, startx_lvl + j, lv->hidden_cell[i][j]);
-                } else mvaddch(starty_lvl + i, startx_lvl + j, lv->cell[i][j]);
-            }
-        }
-        refresh();
-        getch();
-
-        for (int i = 0; i < line_lvl; i++) {
-            for (int j = 0; j < col_lvl; j++) {
-                if (lv->golds->pickable_sit[i][j]) {
-                    attron(lv->golds->attr[i][j]);
-                    mvprintw(starty_lvl + i, startx_lvl + j, "%s", lv->golds->cells[i][j]);
-                    attroff(lv->golds->attr[i][j]);
-                }
-                if (lv->talismans->pickable_sit[i][j]) {
-                    attron(lv->talismans->attr[i][j]);
-                    mvprintw(starty_lvl + i, startx_lvl + j, "%s", lv->talismans->cells[i][j]);
-                    attroff(lv->talismans->attr[i][j]);
-                }
-                if (lv->foods->pickable_sit[i][j]) {
-                    attron(lv->foods->attr[i][j]);
-                    mvprintw(starty_lvl + i, startx_lvl + j, "%s", lv->foods->cells[i][j]);
-                    attroff(lv->foods->attr[i][j]);
-                }
-                if (lv->weapons->pickable_sit[i][j]) {
-                    attron(lv->weapons->attr[i][j]);
-                    mvprintw(starty_lvl + i, startx_lvl + j, "%s", lv->weapons->cells[i][j]);
-                    attroff(lv->weapons->attr[i][j]);
-                }
-            }
-        }
-
-        refresh();
-        getch();
-
-        clear();
-    }
-
-    endwin();
-
-}
+*/
