@@ -13,7 +13,7 @@
 #define dif_easy 0
 #define dif_normal 1
 #define dif_hard 2
-#define default_color 0
+#define default_color 18
 #define default_music ""
 #define RED_ON_BLACK 11
 #define BLUE_ON_BLACK 12
@@ -65,7 +65,10 @@ void message_box (char *msg);
 void message_box_no_end (char *msg);
 int open_choosing(user *player, char **options, int n);
 void open_setting (user *player);
+void scoreboard_show (user *player);
+void open_profile (user *player);
 int do_menu_stuff (int num_op, char **option, int *slcted, char *username);
+void save_player_infos (user *player);
 user* register_user();
 user* log_in_user();
 

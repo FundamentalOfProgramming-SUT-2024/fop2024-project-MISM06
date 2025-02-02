@@ -1607,7 +1607,7 @@ void play_with_user (map *mp, user * player) {
         wclear(mg_win);
     }
     player->game_started += 1;
-    
+    player->total_gold += mp->inv->gold_cnt;
     
     if (lost) {
         clear();
@@ -1634,7 +1634,6 @@ void play_with_user (map *mp, user * player) {
         attroff(COLOR_PAIR(GRAY_ON_BLACK) | A_BLINK);
         refresh();
         player->game_ended += won;
-        player->total_gold += mp->inv->gold_cnt;
         if (player->max_gold < mp->inv->gold_cnt) player->max_gold = mp->inv->gold_cnt;
         getch();
         clear();
@@ -1652,6 +1651,7 @@ void play_with_user (map *mp, user * player) {
         getch();
         clear();
     }
+    save_player_infos(player);
 }
 
 void start_a_new_game (user * player) {

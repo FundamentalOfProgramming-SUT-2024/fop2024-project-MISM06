@@ -155,6 +155,9 @@ int open_choosing(user *player, char **options, int n) {
     int selected = 0;
     int num_op = n;
     int ch;
+    wattron(win, COLOR_PAIR(GRAY_ON_BLACK) | A_BOLD);
+    mvwprintw(win, 0, getmaxx(win) - 10 , "Setting");
+    wattroff(win, COLOR_PAIR(GRAY_ON_BLACK) | A_BOLD);
     do {
         wattron(win, COLOR_PAIR(13));
         for (int i = 0; i < num_op; i++) {
@@ -241,9 +244,228 @@ void open_setting (user *player) {
     } while (slct >= 0);
 }
 
+void scoreboard_show (user *player) {
+    FILE *data = fopen("users_info.json", "r");
+    if (!data) {
+        message_box("There is no registered username!");
+        return;
+    }
+    char buffer[100000];
+    size_t fsz = fread(buffer, 1, sizeof(buffer), data);
+    fclose(data);
+    buffer[fsz] = '\0';
+    struct json_object* users = json_tokener_parse(buffer);
+    if (!users) {
+        message_box("No valid user!");
+        return;
+    }
+    int n = 0;
+    char username[10000][100];
+    int total_gold[10000];
+    int max_gold[10000];
+    int game_ended[10000];
+    int game_started[10000];
+    int rank[10000];
+    
+    json_object_object_foreach(users, name, prof) {
+        username[n][0] = '\0';
+        strcpy(username[n], name);
+        total_gold[n] = json_object_get_int(json_object_object_get(prof, "total_gold"));
+        max_gold[n] = json_object_get_int(json_object_object_get(prof, "max_gold"));
+        game_ended[n] = json_object_get_int(json_object_object_get(prof, "game_ended"));
+        game_started[n] = total_gold[n] = json_object_get_int(json_object_object_get(prof, "total_gold"));
+        rank[n] = n;
+        ++n;
+    }
+    json_object_put(users);
+
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            if (max_gold[rank[i]] < max_gold[rank[j]]) {
+                int temp = rank[i];
+                rank[i] = rank[j];
+                rank[j] = temp;
+            } else if (max_gold[rank[i]] == max_gold[rank[j]] && total_gold[rank[i]] < total_gold[rank[j]]) {
+                int temp = rank[i];
+                rank[i] = rank[j];
+                rank[j] = temp;
+            }
+        }
+    }
+    int view = 20;
+    int page = 0;
+    int page_num = (n + (view - 1)) / view;
+    
+    int lny = view + 6;
+    int lnx = 61;
+    int sty = (LINES - lny) / 2;
+    int stx = (COLS - lnx) / 2;
+    WINDOW *win = newwin(lny, lnx, sty, stx);
+    //rank 1 to 4
+    //username 6 to 30
+    //point 32 to 36
+    //sum pt 38 to 43
+    //exp 45 to 48
+    //tried 50 52
+    // nothing 54 to 59
+    
+    int ch;
+    do {
+        wclear(win);
+        wattron(win, COLOR_PAIR(RED_ON_BLACK));
+        box(win, 0, 0);
+        wattron(win, A_BOLD);
+        mvwprintw(win, 0, lnx - 13, "Scoreboard");
+        wattroff(win, A_BOLD);
+        mvwprintw(win, lny - 2, 1, "Page %d / %d", page + 1, page_num);
+        for (int i = 1; i < lnx - 1; i++) {
+            mvwaddch(win, 2, i, ACS_HLINE);
+        }
+        mvwprintw(win, 1, 1, "Rank");
+        // mvwaddch(win, 1, 5, ACS_VLINE);
+        mvwprintw(win, 1, 6, "        Username");
+        // mvwaddch(win, 1, 31, ACS_VLINE);
+        mvwprintw(win, 1, 32, "Point");
+        // mvwaddch(win, 1, 37, ACS_VLINE);
+        mvwprintw(win, 1, 38, "Sum pt");
+        // mvwaddch(win, 1, 44, ACS_VLINE);
+        mvwprintw(win, 1, 45, "Exp");
+        // mvwaddch(win, 1, 49, ACS_VLINE);
+        mvwprintw(win, 1, 50, "Try");
+        // mvwaddch(win, 1, 53, ACS_VLINE);
+
+
+        wattroff(win, COLOR_PAIR(RED_ON_BLACK));
+
+        int rf = view * (page + 1);
+        if (n < rf) rf = n;
+        int kf = view * page;
+        for (int i = view * page; i < rf; i++) {
+            int id = rank[i];
+            char nick[10]; nick[0] = '\0';
+            chtype attr = A_ITALIC;
+            if (!strcmp(username[id], player->username)) {
+                attr |= A_REVERSE;
+            }
+            if (i == 0) {
+                attr |= COLOR_PAIR(YELLOW_ON_BLACK);
+                
+            } else if (i == 1) {
+                attr |= COLOR_PAIR(BLUE_ON_BLACK);
+            } else if (i == 2) {
+                attr |= COLOR_PAIR(GREEN_ON_BLACK);
+            } else {
+                attr |= COLOR_PAIR(GRAY_ON_BLACK);
+            }
+            wattron(win, attr);
+            for (int j = 1; j < lnx - 1; j++) mvwprintw(win, i + 3, j, " ");
+            mvwprintw(win, i + 3 - kf, 1, "%d", i);
+            // mvwprintw(win, i + 3, 5, "|");
+            mvwprintw(win, i + 3 - kf, 6, "%s", username[id]);
+            // mvwprintw(win, i + 3, 31, "|");
+            mvwprintw(win, i + 3 - kf, 32, "%d", max_gold[id]);
+            // mvwprintw(win, i + 3, 37, "|");
+            mvwprintw(win, i + 3 - kf, 38, "%d", total_gold[id]);
+            // mvwprintw(win, i + 3, 44, "|");
+            mvwprintw(win, i + 3 - kf, 45, "%d", game_ended[id]);
+            // mvwprintw(win, i + 3, 49, "|");
+            mvwprintw(win, i + 3 - kf, 50, "%d", game_started[id]);
+            // mvwprintw(win, i + 3, 53, "|");
+            if (i == 0) mvwprintw(win, i + 3 - kf, 54, "LEGENG");
+            if (i == 1) mvwprintw(win, i + 3 - kf, 54, "MASTER");
+            if (i == 2) mvwprintw(win, i + 3 - kf, 54, "EXPERT");
+            wattroff(win, attr);
+        }
+        wrefresh(win);
+        ch = getch();
+        switch(ch) {
+            case KEY_RIGHT :
+                ++page;
+                page %= page_num;
+                break;
+            case KEY_LEFT :
+                page += page_num;
+                --page;
+                page %= page_num;
+                break;
+            case KEY_F(1) :
+                break;
+            default :
+                message_box("F1 for back to menu, arrow key for changing page.");
+                break;
+        } 
+
+    }while (ch != KEY_F(1));
+    wclear(win);
+    wrefresh(win);
+    delwin(win);
+
+}
+
+void open_profile (user *player) {
+    WINDOW *win = make_center_window();
+    wattron(win, A_BOLD | COLOR_PAIR(GRAY_ON_BLACK));
+    mvwprintw(win, 0, getmaxx(win) - 10, "Profile");
+    wattroff(win, A_BOLD | COLOR_PAIR(GRAY_ON_BLACK));
+
+    wattron(win, COLOR_PAIR(WHITE_ON_BLACK));
+    wmove(win, 1, 1);
+    wprintw(win, "Username: ");
+    wattroff(win, COLOR_PAIR(WHITE_ON_BLACK));
+    wattron(win, COLOR_PAIR(RED_ON_BLACK) | A_ITALIC);
+    wprintw(win, "%s", player->username);
+    wattroff(win, COLOR_PAIR(RED_ON_BLACK) | A_ITALIC);
+
+    wattron(win, COLOR_PAIR(WHITE_ON_BLACK));
+    wmove(win, 2, 1);
+    wprintw(win, "Point: ");
+    wattroff(win, COLOR_PAIR(WHITE_ON_BLACK));
+    wattron(win, COLOR_PAIR(RED_ON_BLACK) | A_ITALIC);
+    wprintw(win, "%d", player->max_gold);
+    wattroff(win, COLOR_PAIR(RED_ON_BLACK) | A_ITALIC);
+
+    wattron(win, COLOR_PAIR(WHITE_ON_BLACK));
+    wmove(win, 3, 1);
+    wprintw(win, "Sum pt: ");
+    wattroff(win, COLOR_PAIR(WHITE_ON_BLACK));
+    wattron(win, COLOR_PAIR(RED_ON_BLACK) | A_ITALIC);
+    wprintw(win, "%d", player->total_gold);
+    wattroff(win, COLOR_PAIR(RED_ON_BLACK) | A_ITALIC);
+
+    wattron(win, COLOR_PAIR(WHITE_ON_BLACK));
+    wmove(win, 4, 1);
+    wprintw(win, "Experience: ");
+    wattroff(win, COLOR_PAIR(WHITE_ON_BLACK));
+    wattron(win, COLOR_PAIR(RED_ON_BLACK) | A_ITALIC);
+    wprintw(win, "%d", player->game_ended);
+    wattroff(win, COLOR_PAIR(RED_ON_BLACK) | A_ITALIC);
+
+    wattron(win, COLOR_PAIR(WHITE_ON_BLACK));
+    wmove(win, 5, 1);
+    wprintw(win, "Tries: ");
+    wattroff(win, COLOR_PAIR(WHITE_ON_BLACK));
+    wattron(win, COLOR_PAIR(RED_ON_BLACK) | A_ITALIC);
+    wprintw(win, "%d", player->game_started);
+    wattroff(win, COLOR_PAIR(RED_ON_BLACK) | A_ITALIC);
+
+    wrefresh(win);
+    int ch;
+    do {
+        ch = getch();
+    } while (ch != KEY_F(1));
+
+    wclear(win);
+    wrefresh(win);
+    delwin(win);
+
+}
+
 int do_menu_stuff (int num_op, char **option, int *slcted, char *username) {
     int selected = *slcted;
     WINDOW *menu = make_center_window();
+    wattron(menu, COLOR_PAIR(GRAY_ON_BLACK) | A_BOLD);
+    mvwprintw(menu, 0, getmaxx(menu) - 8, "Menu");
+    wattroff(menu, COLOR_PAIR(GRAY_ON_BLACK) | A_BOLD);
     int ch;
     do {
         wattron(menu, COLOR_PAIR(13));
@@ -278,12 +500,56 @@ int do_menu_stuff (int num_op, char **option, int *slcted, char *username) {
     } while(ch != 10);
     // wrefresh(menu);
     wclear(menu);
+    wrefresh(menu);
     delwin(menu);
     *slcted = selected;
     return selected;
 }
+void save_player_infos (user *player) {
+    if (player->is_guest) return;
+    FILE *data = fopen("users_info.json", "r");
+    if (!data) {
+        data = fopen("users_info.json", "w");
+        fclose(data);
+        data = fopen("users_info.json", "r");
+    }
+    char buffer[100000];
+    size_t fsz = fread(buffer, 1, sizeof(buffer), data);
+    fclose(data);
+    buffer[fsz] = '\0';
+    struct json_object* users = json_tokener_parse(buffer);
+    if (!users) users = json_object_new_object();
+    else json_object_object_del(users, player->username);
+
+    struct json_object *new_object = json_object_new_object();
+    json_object_object_add(new_object, "password", json_object_new_string(player->password));
+    json_object_object_add(new_object, "total_gold", json_object_new_int(player->total_gold));
+    json_object_object_add(new_object, "max_gold", json_object_new_int(player->max_gold));
+    json_object_object_add(new_object, "game_started", json_object_new_int(player->game_started));
+    json_object_object_add(new_object, "game_ended", json_object_new_int(player->game_ended));
+    json_object_object_add(new_object, "is_guest", json_object_new_int(player->is_guest));
+    json_object_object_add(new_object, "difficulty", json_object_new_int(player->difficulty));
+    json_object_object_add(new_object, "last_save_of_game", json_object_new_string(player->last_save_of_game));
+    json_object_object_add(new_object, "music", json_object_new_string(player->music));
+    json_object_object_add(new_object, "hero_color", json_object_new_int(player->hero_color));
+    json_object_object_add(new_object, "is_music_on", json_object_new_int(player->is_music_on));
+    json_object_object_add(users, player->username, new_object);
+
+    data = fopen("users_info.json", "w");
+    if (!data) {
+        message_box("OPS, something happed, please close the game and try again!");
+    } else {
+        fprintf(data, "%s\n", json_object_to_json_string(users));
+        fclose(data);
+    }
+    json_object_put(users);
+
+}
 user* register_user() {
     WINDOW *win = make_center_window();
+    wattron(win, COLOR_PAIR(GRAY_ON_BLACK) | A_BOLD);
+    mvwprintw(win, 0, getmaxx(win) - 11, "Register");
+    wattroff(win, COLOR_PAIR(GRAY_ON_BLACK) | A_BOLD);
     wattron(win, COLOR_PAIR(13));
     FILE *data = fopen("users_info.json", "r");
     if (!data) {
@@ -291,7 +557,7 @@ user* register_user() {
         fclose(data);
         data = fopen("users_info.json", "r");
     }
-    char buffer[10000];
+    char buffer[100000];
     size_t fsz = fread(buffer, 1, sizeof(buffer), data);
     fclose(data);
     buffer[fsz] = '\0';
@@ -375,7 +641,7 @@ user* register_user() {
     new_user->password = (char *)malloc(30 * sizeof(char));
     new_user->last_save_of_game = (char *)malloc(50 * sizeof(char));
     new_user->music = (char *)malloc(30 * sizeof(char));
-    new_user->hero_color = default_color;
+    new_user->hero_color = COLOR_PAIR(YELLOW_ON_BLACK);
     new_user->total_gold = 0;
     new_user->max_gold = 0;
     new_user->game_started = 0;
@@ -422,6 +688,9 @@ user* register_user() {
 }
 user* log_in_user() {
     WINDOW *win = make_center_window();
+    wattron(win, COLOR_PAIR(GRAY_ON_BLACK) | A_BOLD);
+    mvwprintw(win, 0, getmaxx(win) - 9, "Log in");
+    wattroff(win, COLOR_PAIR(GRAY_ON_BLACK) | A_BOLD);
     wattron(win, COLOR_PAIR(13));
     mvwaddstr(win, 1, 1, "For log in as 'guest' press 'F1'");
     wrefresh(win);
@@ -455,15 +724,20 @@ user* log_in_user() {
         delwin(win);
         return NULL;
     }
-    char buffer[1000];
+    char buffer[100000];
     if (!data) {
         message_box("goh");
     }
     size_t fsz = fread(buffer, 1, sizeof(buffer), data);
     fclose(data);
     buffer[fsz] = '\0';
+    // mvprintw(0, 0, "%lu", fsz);
+    getch();
     struct json_object* users = json_tokener_parse(buffer);
-    if (!users) users = json_object_new_object();
+    if (!users) {
+        users = json_object_new_object();
+        message_box("nothing");
+    }
     char *msg[] = {"Username : ", "Password : "};
     char *ans[10];
     int num_msg = sizeof(msg) / sizeof(msg[0]);
@@ -484,6 +758,7 @@ user* log_in_user() {
             valid = 1;
             if (!strcmp(msg[i], "Username : ")) {
                 struct json_object *garb;
+                // message_box(ans[i]);
                 if (!json_object_object_get_ex(users, ans[i], &garb)) {
                     message_box("Username don't exist, register first!");
                     wclear(win);

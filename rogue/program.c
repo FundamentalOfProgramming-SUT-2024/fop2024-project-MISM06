@@ -23,7 +23,7 @@ int main() {
     initial_page();
     
     int opt, selected = 0;
-    char *option[] = {"Continue game", "New game", "Log in", "Sign up", "Scoreboard", "Setting", "Quit game"};
+    char *option[] = {"Continue game", "New game", "Log in", "Sign up", "Scoreboard", "Setting", "Profile","Quit game"};
     user *player;
     char *user_name_current = NULL;
     do {
@@ -61,7 +61,8 @@ int main() {
                 message_box("Log in first!");
                 continue;
             }
-            message_box("comming soon!");
+            
+            scoreboard_show(player);
         }
         if (!strcmp("Setting", option[opt])) {
             if (user_name_current == NULL) {
@@ -69,6 +70,13 @@ int main() {
                 continue;
             }
             open_setting(player);
+        }
+        if (!strcmp("Profile", option[opt])) {
+            if (user_name_current == NULL) {
+                message_box("Log in first!");
+                continue;
+            }
+            open_profile(player);
         }
         if (!strcmp("Quit game", option[opt])) {
             message_box("Have a good life champ :_)");
