@@ -190,6 +190,9 @@ void refresh_map(map *mp) {
         for (int j = 0; j < col_lvl; j++) {
             if (lv->explore_sit[i][j] == 0 && M_mode_on == 0) continue;
             if (lv->cell[i][j] == 0 && lv->hidden_sit[i][j] == 0) continue;
+            // if (lv->cell[i][j] == NULL) {
+            //     message_box("cell is null");
+            // }
             mvwaddch(mp_win, i, j, lv->cell[i][j]);
             if (lv->hidden_sit[i][j] == 2) {
                 mvwaddch(mp_win, i, j, lv->hidden_cell[i][j]);
@@ -203,6 +206,10 @@ void refresh_map(map *mp) {
             if (lv->explore_sit[i][j] == 0 && M_mode_on == 0) continue;
             if (lv->foods->pickable_sit[i][j]) {
                 wattron(mp_win,lv->foods->attr[i][j]);
+                // if (lv->foods->cells[i][j] == NULL) {
+                //     message_box("food is null");
+                //     // message_box(catnum("rm :", lv->room_id[i][j]));
+                // }
                 mvwprintw(mp_win, i, j, "%s", lv->foods->cells[i][j]);
                 wattroff(mp_win,lv->foods->attr[i][j]);
             }
@@ -215,6 +222,10 @@ void refresh_map(map *mp) {
             if (lv->explore_sit[i][j] == 0 && M_mode_on == 0) continue;
             if (lv->golds->pickable_sit[i][j]) {
                 wattron(mp_win,lv->golds->attr[i][j]);
+                // if (lv->golds->cells[i][j] == NULL) {
+                //     message_box("gold is null");
+                //     // message_box(catnum("rm :", lv->room_id[i][j]));
+                // }
                 mvwprintw(mp_win, i, j, "%s", lv->golds->cells[i][j]);
                 wattroff(mp_win,lv->golds->attr[i][j]);
             }
@@ -227,18 +238,26 @@ void refresh_map(map *mp) {
             if (lv->explore_sit[i][j] == 0 && M_mode_on == 0) continue;
             if (lv->talismans->pickable_sit[i][j]) {
                 wattron(mp_win,lv->talismans->attr[i][j]);
+                // if (lv->talismans->cells[i][j] == NULL) {
+                //     message_box("talisman is null");
+                //     // message_box(catnum("rm :", lv->room_id[i][j]));
+                // }
                 mvwprintw(mp_win, i, j, "%s", lv->talismans->cells[i][j]);
                 wattroff(mp_win,lv->talismans->attr[i][j]);
             }
         }
     }
-
+  
     //weapons;
     for (int i = 0; i < line_lvl; i++) {
         for (int j = 0; j < col_lvl; j++) {
             if (lv->explore_sit[i][j] == 0 && M_mode_on == 0) continue;
             if (lv->weapons->pickable_sit[i][j]) {
                 wattron(mp_win,lv->weapons->attr[i][j]);
+                // if (lv->weapons->cells[i][j] == NULL) {
+                //     message_box("weapon is null");
+                //     // message_box(catnum("rm :", lv->room_id[i][j]));
+                // }
                 mvwprintw(mp_win, i, j, "%s", lv->weapons->cells[i][j]);
                 wattroff(mp_win,lv->weapons->attr[i][j]);
             }
@@ -252,6 +271,9 @@ void refresh_map(map *mp) {
             for (int k = 0; k < lv->monster_num; k++) {
                 if (lv->monster[k]->cnt[i][j]) {
                     wattron(mp_win,lv->monster[k]->attr);
+                    // if (lv->monster[k]->look == NULL) {
+                    // message_box("monster is null");
+                    //  }
                     mvwprintw(mp_win, i, j, "%c", lv->monster[k]->look);
                     wattroff(mp_win,lv->monster[k]->attr);
                 }
@@ -562,7 +584,7 @@ void add_this_to_inv (map *mp, char *shape, chtype attr, int cnt) {
 
 void pick_pos(map *mp, int y, int x) {
     lvl *lv = mp->lvls[mp->curr_lvl];
-    if(lv->weapons->pickable_sit[y][x]) {
+    if(lv->weapons->pickable_sit[y][x]) { 
         pickable_things *pk = lv->weapons;
         pk->pickable_sit[y][x] = 0;
         add_this_to_inv(mp, pk->cells[y][x], pk->attr[y][x], pk->cnt[y][x]);
@@ -1076,6 +1098,25 @@ void now_its_enemy_turn (map *mp, user *player) {
     }
 }
 
+int treasure_room_is_empty(map *mp) {
+    lvl *lv = mp->lvls[mp->lvl_num - 1];
+    int id = lv->treasure_room_id;
+    int c = 0;
+    int sty = lv->rooms[id]->starty;
+    int stx = lv->rooms[id]->startx;
+    int lny = lv->rooms[id]->h;
+    int lnx = lv->rooms[id]->w;
+    for (int y = sty; y < sty + lny; y++) {
+        for (int x = stx; x < stx + lnx; x++) {
+            for (int i = 0; i < lv->monster_num; i++) {
+                if (lv->monster[i]->cnt[y][x]) ++c;
+            }
+        }
+    }
+    if (c) return 0;
+    return 1;
+}
+
 void play_with_user (map *mp, user * player) {
     hp = mp->hp;
     stamina = mp->stamina;
@@ -1087,6 +1128,8 @@ void play_with_user (map *mp, user * player) {
     int is_force_on = 0;
     int stamina_circle = 20;
     
+    int lost = 0;
+    int won = 0;
     while ((ch = getch()) != KEY_F(1)) {
         int did = 0;
         /*
@@ -1542,7 +1585,94 @@ void play_with_user (map *mp, user * player) {
         if (enchant_damage < 0) enchant_damage = 0;
         if (enchant_damage > Max_enchant) enchant_damage = Max_enchant;
         refresh_game(mp, player);
+        if (hp == 0) {
+            lost = 1;
+            break;
+        }
+        if (treasure_room_is_empty(mp)) {
+            won = 1;
+            show_message_cover("You've just WON, Press F1 to save yor result!", 0);
+        }
     }
+    if (bar_win != NULL) {
+        wclear(bar_win);
+    }
+    if (mp_win != NULL) {
+        wclear(mp_win);
+    }
+    if (info_win != NULL) {
+        wclear(info_win);
+    }
+    if (mg_win != NULL) {
+        wclear(mg_win);
+    }
+    player->game_started += 1;
+    
+    
+    if (lost) {
+        clear();
+        attron(COLOR_PAIR(RED_ON_BLACK) | A_BOLD);
+        char mg[] = "< YOU DIED >";
+        mvprintw(LINES / 2, (COLS - (strlen(mg))) / 2, "%s", mg);
+        attroff(COLOR_PAIR(RED_ON_BLACK) | A_BOLD);
+        char mg2[] = "press any key to continue.";
+        attron(COLOR_PAIR(GRAY_ON_BLACK) | A_BLINK);
+        mvprintw(LINES / 2 + 1, (COLS - (strlen(mg2))) / 2, "%s", mg2);
+        attroff(COLOR_PAIR(GRAY_ON_BLACK) | A_BLINK);
+        refresh();
+        getch();
+        clear();
+    } else if (won) {
+        clear();
+        attron(COLOR_PAIR(YELLOW_ON_BLACK) | A_BOLD);
+        char mg[] = "< YOU WON >";
+        mvprintw(LINES / 2, (COLS - (strlen(mg))) / 2, "%s", mg);
+        attroff(COLOR_PAIR(YELLOW_ON_BLACK) | A_BOLD);
+        char mg2[] = "press any key to continue.";
+        attron(COLOR_PAIR(GRAY_ON_BLACK) | A_BLINK);
+        mvprintw(LINES / 2 + 1, (COLS - (strlen(mg2))) / 2, "%s", mg2);
+        attroff(COLOR_PAIR(GRAY_ON_BLACK) | A_BLINK);
+        refresh();
+        player->game_ended += won;
+        player->total_gold += mp->inv->gold_cnt;
+        if (player->max_gold < mp->inv->gold_cnt) player->max_gold = mp->inv->gold_cnt;
+        getch();
+        clear();
+    } else {
+        clear();
+        attron(COLOR_PAIR(BLUE_ON_BLACK) | A_BOLD);
+        char mg[] = "< I knew that you couldn't do it >";
+        mvprintw(LINES / 2, (COLS - (strlen(mg))) / 2, "%s", mg);
+        attroff(COLOR_PAIR(BLUE_ON_BLACK) | A_BOLD);
+        char mg2[] = "press any key to continue.";
+        attron(COLOR_PAIR(GRAY_ON_BLACK) | A_BLINK);
+        mvprintw(LINES / 2 + 1, (COLS - (strlen(mg2))) / 2, "%s", mg2);
+        attroff(COLOR_PAIR(GRAY_ON_BLACK) | A_BLINK);
+        refresh();
+        getch();
+        clear();
+    }
+}
+
+void start_a_new_game (user * player) {
+    
+    refresh();
+    set_colors();
+    init_elmnts();
+    
+    
+    init_elements_movement();
+    refresh();
+    // player->difficulty = dif_easy;
+    
+    map *mp = generate_map(player);
+    // save_map(generate_map(player), player);
+    // map *mp = load_map(player);
+    play_with_user(mp, player);
+   
+    refresh();
+    
+    
 }
 
 int main() {
@@ -1552,23 +1682,9 @@ int main() {
     noecho();
     start_color();
     use_default_colors();
-    set_colors();
-    init_elmnts();
-    
     keypad(stdscr, true);
     cbreak();
-    refresh();
-    init_elements_movement();
     user *player = raw_user();
-    // player->difficulty = dif_easy;
-    
-    map *mp = generate_map(player);
-    play_with_user(mp, player);
-   
-    refresh();
-    
-    // getch();
-    
+    start_a_new_game(player);
     endwin();
-
 }

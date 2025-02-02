@@ -93,18 +93,18 @@ void init_elmnts () {
     gold_regular_attr = COLOR_PAIR(YELLOW_ON_BLACK);
     gold_black_attr = COLOR_PAIR(PURPLE_D_ON_BLACK);
 
-    talisman_health = "\u2695";
-    talisman_speed = "\u2301";
+    talisman_health = "⚕"; //"\u2695";
+    talisman_speed = "⌁"; //"\u2301";
     talisman_damage = "ᛟ";
     talisman_health_attr = COLOR_PAIR(GREEN_ON_BLACK);
     talisman_speed_attr = COLOR_PAIR(YELLOW_ON_BLACK);
     talisman_damage_attr = COLOR_PAIR(RED_ON_BLACK);
 
-    weapon_sword = "\u26B8";
-    weapon_mace = "\u26B5"; //gorz
+    weapon_sword = "⚸"; //"\u26B8";
+    weapon_mace = "⚵"; //"\u26B5"; //gorz
     weapon_dagger = "࿈"; //khankar
-    weapon_magic_wand = "\u2628";
-    weapon_arrow = "\u21A2";
+    weapon_magic_wand = "☨"; //"\u2628";
+    weapon_arrow = "↢"; //"\u21A2";
     weapon_sword_attr = COLOR_PAIR(RED_ON_BLACK);
     weapon_mace_attr = COLOR_PAIR(RED_ON_BLACK);
     weapon_dagger_attr = COLOR_PAIR(GRAY_ON_BLACK);
@@ -120,7 +120,7 @@ void init_elmnts () {
     food_magical_attr = COLOR_PAIR(PURPLE_D_ON_BLACK);
     food_rotten_attr = COLOR_PAIR(RED_ON_BLACK);
 
-    hero = "\u2362";
+    hero = "⍢"; //"\u2362";
     hero_attr = A_BOLD | COLOR_PAIR(WHITE_ON_BLACK);
 
 }
@@ -1007,7 +1007,7 @@ void add_pickable_things (int diff, lvl *lv) {
     for (int i = 0; i < line_lvl; i++) {
         golds->cells[i] = (char **)malloc(col_lvl * sizeof(char *));
         for (int j = 0; j < col_lvl; j++) {
-            golds->cells[i][j] = (char *)malloc(10 * sizeof(char));
+            golds->cells[i][j] = (char *)malloc(50 * sizeof(char));
             golds->cells[i][j][0] = '\0';
         }
     }
@@ -1037,7 +1037,7 @@ void add_pickable_things (int diff, lvl *lv) {
     for (int i = 0; i < line_lvl; i++) {
         talisman->cells[i] = (char **)malloc(col_lvl * sizeof(char *));
         for (int j = 0; j < col_lvl; j++) {
-            talisman->cells[i][j] = (char *)malloc(10 * sizeof(char));
+            talisman->cells[i][j] = (char *)malloc(50 * sizeof(char));
             talisman->cells[i][j][0] = '\0';
         }
     }
@@ -1068,7 +1068,7 @@ void add_pickable_things (int diff, lvl *lv) {
     for (int i = 0; i < line_lvl; i++) {
         foods->cells[i] = (char **)malloc(col_lvl * sizeof(char *));
         for (int j = 0; j < col_lvl; j++) {
-            foods->cells[i][j] = (char *)malloc(10 * sizeof(char));
+            foods->cells[i][j] = (char *)malloc(50 * sizeof(char));
             foods->cells[i][j][0] = '\0';
         }
     }
@@ -1099,7 +1099,7 @@ void add_pickable_things (int diff, lvl *lv) {
     for (int i = 0; i < line_lvl; i++) {
         weapons->cells[i] = (char **)malloc(col_lvl * sizeof(char *));
         for (int j = 0; j < col_lvl; j++) {
-            weapons->cells[i][j] = (char *)malloc(10 * sizeof(char));
+            weapons->cells[i][j] = (char *)malloc(50 * sizeof(char));
             weapons->cells[i][j][0] = '\0';
         }
     }
@@ -1774,8 +1774,11 @@ void save_map (map *mp, user *player) {
     json_object_object_add(hero_place, "x", json_object_new_int64(mp->hero_place.x));
     json_object_object_add(mp_o, "hero_place", hero_place);
 
+    // message_box("lvls:");
+
     //lvls
     for (int i = 0; i < mp->lvl_num; i++) {
+        // message_box(catnum("level ", i));
         lvl *lv = mp->lvls[i];
         struct json_object *lv_o = json_object_new_object();
         struct json_object *cell = json_object_new_array();
@@ -1806,6 +1809,7 @@ void save_map (map *mp, user *player) {
         json_object_object_add(lv_o, "explore_sit", explore_sit);
         json_object_object_add(lv_o, "room_id", room_id);
 
+        // message_box("rooms:");
         //rooms
         for (int j = 0; j < lv->room_num; j++) {
             room* rm = lv->rooms[j];
@@ -1863,6 +1867,7 @@ void save_map (map *mp, user *player) {
         json_object_object_add(down_stair, "x", json_object_new_int64(lv->down_stair.x));
         json_object_object_add(lv_o, "down_stair", down_stair);
 
+        // message_box("pk things:");
         //pickable_things
         pickable_things *pk_thing;
         struct json_object *pk_thing_o;
@@ -1873,10 +1878,10 @@ void save_map (map *mp, user *player) {
         //golds
         pk_thing = lv->golds;
         pk_thing_o = json_object_new_object();
-        pickable_sit = json_object_new_object();
-        cells = json_object_new_object();
-        attr= json_object_new_object();
-        cnt = json_object_new_object();
+        pickable_sit = json_object_new_array();
+        cells = json_object_new_array();
+        attr= json_object_new_array();
+        cnt = json_object_new_array();
         for (int y = 0; y < line_lvl; y++) {
             for (int x = 0; x < col_lvl; x++) {
                 json_object_array_add(pickable_sit, json_object_new_int64(pk_thing->pickable_sit[y][x]));
@@ -1894,10 +1899,10 @@ void save_map (map *mp, user *player) {
         //weapons
         pk_thing = lv->weapons;
         pk_thing_o = json_object_new_object();
-        pickable_sit = json_object_new_object();
-        cells = json_object_new_object();
-        attr= json_object_new_object();
-        cnt = json_object_new_object();
+        pickable_sit = json_object_new_array();
+        cells = json_object_new_array();
+        attr= json_object_new_array();
+        cnt = json_object_new_array();
         for (int y = 0; y < line_lvl; y++) {
             for (int x = 0; x < col_lvl; x++) {
                 json_object_array_add(pickable_sit, json_object_new_int64(pk_thing->pickable_sit[y][x]));
@@ -1915,10 +1920,10 @@ void save_map (map *mp, user *player) {
         //talismans
         pk_thing = lv->talismans;
         pk_thing_o = json_object_new_object();
-        pickable_sit = json_object_new_object();
-        cells = json_object_new_object();
-        attr= json_object_new_object();
-        cnt = json_object_new_object();
+        pickable_sit = json_object_new_array();
+        cells = json_object_new_array();
+        attr= json_object_new_array();
+        cnt = json_object_new_array();
         for (int y = 0; y < line_lvl; y++) {
             for (int x = 0; x < col_lvl; x++) {
                 json_object_array_add(pickable_sit, json_object_new_int64(pk_thing->pickable_sit[y][x]));
@@ -1936,10 +1941,10 @@ void save_map (map *mp, user *player) {
         //foods
         pk_thing = lv->foods;
         pk_thing_o = json_object_new_object();
-        pickable_sit = json_object_new_object();
-        cells = json_object_new_object();
-        attr= json_object_new_object();
-        cnt = json_object_new_object();
+        pickable_sit = json_object_new_array();
+        cells = json_object_new_array();
+        attr= json_object_new_array();
+        cnt = json_object_new_array();
         for (int y = 0; y < line_lvl; y++) {
             for (int x = 0; x < col_lvl; x++) {
                 json_object_array_add(pickable_sit, json_object_new_int64(pk_thing->pickable_sit[y][x]));
@@ -1958,6 +1963,7 @@ void save_map (map *mp, user *player) {
         json_object_object_add(mp_o, catnum("lvls", i), lv_o);
     }
 
+    // message_box("inv :");
     //inv
     struct json_object *inv_o = json_object_new_object();
     json_object_object_add(inv_o, "gold_cnt", json_object_new_int64(mp->inv->gold_cnt));
@@ -1986,18 +1992,25 @@ void save_map (map *mp, user *player) {
     json_object_object_add(saver, "map", mp_o);
 
     FILE *data = fopen(player->last_save_of_game, "w");
+    // if (data) {
+    //     const char *json_str = json_object_to_json_string_ext(saver, JSON_C_TO_STRING_PRETTY);
+    //     size_t len = strlen(json_str);
+    //     if (fwrite(json_str, 1, len, data) != len) {
+    //         message_box("Couldn't save your game!");
+    //     }
+    //     fclose(data);
+    // } else {
+    //     message_box("Couldn't save your game, sorry!");
+    // }
+
     if (data) {
-        const char *json_str = json_object_to_json_string_ext(saver, JSON_C_TO_STRING_PRETTY);
-        size_t len = strlen(json_str);
-        if (fwrite(json_str, 1, len, data) != len) {
-            message_box("Couldn't save your game!");
-        }
+        fprintf(data, "%s", json_object_to_json_string(saver));
         fclose(data);
     } else {
         message_box("Couldn't save your game, sorry!");
     }
     
-    json_object_put(saver);
+    // json_object_put(saver);
 }
 
 map* load_map (user *player) {
@@ -2034,10 +2047,11 @@ map* load_map (user *player) {
     mp->hero_place.y = json_object_get_int64(json_object_object_get(json_object_object_get(mp_o, "hero_place"), "y"));
     mp->hero_place.x = json_object_get_int64(json_object_object_get(json_object_object_get(mp_o, "hero_place"), "x"));
 
+    // message_box("lvls:");
     //lvls
     mp->lvls = (lvl **)malloc(mp->lvl_num * sizeof(lvl *));
     for (int i = 0; i < mp->lvl_num; i++) {
-
+        // message_box(catnum("level :", i));
         lvl *lv = (lvl *)malloc(sizeof(lvl));
         struct json_object *lv_o = json_object_object_get(mp_o, catnum("lvls", i));
         lv->room_num = json_object_get_int64(json_object_object_get(lv_o, "room_num"));
@@ -2098,6 +2112,7 @@ map* load_map (user *player) {
             }
         }
 
+        // message_box("rooms");
         //rooms
         lv->rooms = (room **)malloc(lv->room_num * sizeof(room *));
         for (int j = 0; j < lv->room_num; j++) {
@@ -2118,9 +2133,11 @@ map* load_map (user *player) {
             lv->rooms[j] = rm;
         }
 
+        // message_box("monsters:");
         //monster
         lv->monster = (enemy **)malloc(lv->monster_num * sizeof(enemy *));
         for (int j = 0; j < lv->monster_num; j++) {
+            // message_box(catnum("monster: ", j));
             struct json_object *mon_o = json_object_object_get(lv_o, catnum("monster", j));
             enemy *mon = (enemy *)malloc(sizeof(enemy));
 
@@ -2132,17 +2149,18 @@ map* load_map (user *player) {
             mon->max_token = json_object_get_int64(json_object_object_get(mon_o, "max_token"));
             mon->damage = json_object_get_int64(json_object_object_get(mon_o, "damage"));
 
+            // message_box("cnt :");
             mon->cnt = (int **)malloc(line_lvl * sizeof(int *));
-            struct json_object *cnt = json_object_object_get(lv_o, "cnt");
+            struct json_object *cnt = json_object_object_get(mon_o, "cnt");
             for (int y = 0; y < line_lvl; y++) {
                 mon->cnt[y] = (int *)malloc(col_lvl * sizeof(int));
                 for (int x = 0; x < col_lvl; x++) {
                     mon->cnt[y][x] = json_object_get_int64(json_object_array_get_idx(cnt, y * col_lvl + x));
                 }
             }
-
+            // message_box("token :");
             mon->token = (int **)malloc(line_lvl * sizeof(int *));
-            struct json_object *token = json_object_object_get(lv_o, "token");
+            struct json_object *token = json_object_object_get(mon_o, "token");
             for (int y = 0; y < line_lvl; y++) {
                 mon->token[y] = (int *)malloc(col_lvl * sizeof(int));
                 for (int x = 0; x < col_lvl; x++) {
@@ -2151,7 +2169,7 @@ map* load_map (user *player) {
             }
 
             mon->hp = (int **)malloc(line_lvl * sizeof(int *));
-            struct json_object *hp = json_object_object_get(lv_o, "hp");
+            struct json_object *hp = json_object_object_get(mon_o, "hp");
             for (int y = 0; y < line_lvl; y++) {
                 mon->hp[y] = (int *)malloc(col_lvl * sizeof(int));
                 for (int x = 0; x < col_lvl; x++) {
@@ -2162,6 +2180,7 @@ map* load_map (user *player) {
             lv->monster[j] = mon;
         }
 
+        // message_box("pk things:");
         //pickable things
         pickable_things *pk_thing;
         struct json_object *pk_thing_o;
@@ -2194,7 +2213,7 @@ map* load_map (user *player) {
                 pk_thing->attr[y][x] = json_object_get_int64(json_object_array_get_idx(attr, y * col_lvl + x));
                 pk_thing->cnt[y][x] = json_object_get_int64(json_object_array_get_idx(cnt, y * col_lvl + x));
                 pk_thing->cells[y][x] = (char *)malloc(50 * sizeof(char)); pk_thing->cells[y][x][0] = '\0';
-                strcpy(pk_thing->cells[y][x], json_object_get_string(json_object_array_get_idx(cells, y * col_lvl + x)));
+                // strcpy(pk_thing->cells[y][x], json_object_get_string(json_object_array_get_idx(cells, y * col_lvl + x)));
             }
         }
 
@@ -2223,7 +2242,7 @@ map* load_map (user *player) {
                 pk_thing->attr[y][x] = json_object_get_int64(json_object_array_get_idx(attr, y * col_lvl + x));
                 pk_thing->cnt[y][x] = json_object_get_int64(json_object_array_get_idx(cnt, y * col_lvl + x));
                 pk_thing->cells[y][x] = (char *)malloc(50 * sizeof(char)); pk_thing->cells[y][x][0] = '\0';
-                strcpy(pk_thing->cells[y][x], json_object_get_string(json_object_array_get_idx(cells, y * col_lvl + x)));
+                // strcpy(pk_thing->cells[y][x], json_object_get_string(json_object_array_get_idx(cells, y * col_lvl + x)));
             }
         }
 
@@ -2252,17 +2271,18 @@ map* load_map (user *player) {
                 pk_thing->attr[y][x] = json_object_get_int64(json_object_array_get_idx(attr, y * col_lvl + x));
                 pk_thing->cnt[y][x] = json_object_get_int64(json_object_array_get_idx(cnt, y * col_lvl + x));
                 pk_thing->cells[y][x] = (char *)malloc(50 * sizeof(char)); pk_thing->cells[y][x][0] = '\0';
-                strcpy(pk_thing->cells[y][x], json_object_get_string(json_object_array_get_idx(cells, y * col_lvl + x)));
+                // strcpy(pk_thing->cells[y][x], json_object_get_string(json_object_array_get_idx(cells, y * col_lvl + x)));
             }
         }
 
         //foods
-        pk_thing = (pickable_things *)malloc(sizeof(pickable_things));
-        lv->foods = pk_thing;
-        pk_thing->pickable_sit = (int **)malloc(line_lvl * sizeof(int));
-        pk_thing->cells = (char ***)malloc(line_lvl * sizeof(char **));
-        pk_thing->attr = (chtype **)malloc(line_lvl * sizeof(chtype *));
-        pk_thing->cnt = (int **)malloc(line_lvl * sizeof(int *));
+        pickable_things *pk_2;
+        pk_2 = (pickable_things *)malloc(sizeof(pickable_things));
+        lv->foods = pk_2;
+        pk_2->pickable_sit = (int **)malloc(line_lvl * sizeof(int));
+        pk_2->cells = (char ***)malloc(line_lvl * sizeof(char **));
+        pk_2->attr = (chtype **)malloc(line_lvl * sizeof(chtype *));
+        pk_2->cnt = (int **)malloc(line_lvl * sizeof(int *));
 
         pk_thing_o = json_object_object_get(lv_o, "foods");
         pickable_sit = json_object_object_get(pk_thing_o, "pickable_sit");
@@ -2271,24 +2291,35 @@ map* load_map (user *player) {
         cnt = json_object_object_get(pk_thing_o, "cnt");
 
         for (int y = 0; y < line_lvl; y++) {
-            pk_thing->pickable_sit[y] = (int *)malloc(col_lvl * sizeof(int));
-            pk_thing->cells[y] = (char **)malloc(col_lvl * sizeof(char *));
-            pk_thing->attr[y] = (chtype *)malloc(col_lvl * sizeof(chtype));
-            pk_thing->cnt[y] = (int *)malloc(col_lvl * sizeof(int));
+            pk_2->pickable_sit[y] = (int *)malloc(col_lvl * sizeof(int));
+            pk_2->cells[y] = (char **)malloc(col_lvl * sizeof(char *));
+            pk_2->attr[y] = (chtype *)malloc(col_lvl * sizeof(chtype));
+            pk_2->cnt[y] = (int *)malloc(col_lvl * sizeof(int));
 
             for (int x = 0; x < col_lvl; x++) {
-                pk_thing->pickable_sit[y][x] = json_object_get_int64(json_object_array_get_idx(pickable_sit, y * col_lvl + x));
-                pk_thing->attr[y][x] = json_object_get_int64(json_object_array_get_idx(attr, y * col_lvl + x));
-                pk_thing->cnt[y][x] = json_object_get_int64(json_object_array_get_idx(cnt, y * col_lvl + x));
-                pk_thing->cells[y][x] = (char *)malloc(50 * sizeof(char)); pk_thing->cells[y][x][0] = '\0';
-                strcpy(pk_thing->cells[y][x], json_object_get_string(json_object_array_get_idx(cells, y * col_lvl + x)));
+                pk_2->pickable_sit[y][x] = json_object_get_int64(json_object_array_get_idx(pickable_sit, y * col_lvl + x));
+                pk_2->attr[y][x] = json_object_get_int64(json_object_array_get_idx(attr, y * col_lvl + x));
+                pk_2->cnt[y][x] = json_object_get_int64(json_object_array_get_idx(cnt, y * col_lvl + x));
+                // pk_2->cells[y][x] = (char *)malloc(50 * sizeof(char)); pk_2->cells[y][x][1] = '\0'; pk_2->cells[y][x][0] = 'a';
+                pk_2->cells[y][x] = "aa";
+                if (pk_2->cells[y][x] == NULL) message_box("fuckuuu !");
+
+                // strcpy(pk_2->cells[y][x], json_object_get_string(json_object_array_get_idx(cells, y * col_lvl + x)));
             }
         }
-
+        for (int y = 0; y < line_lvl; y++) {
+            for (int x = 0; x < col_lvl; x++) {
+                if (pk_2->cells[y][x] == NULL) {
+                    if (pk_2->cells[y][x] == NULL) message_box("fuck!");
+                }
+                    
+            }
+        }
 
         mp->lvls[i] = lv;
     }
 
+    // message_box("inv:");
     //inv
     mp->inv = (Inventory *)malloc(sizeof(Inventory));
     struct json_object *inv_o = json_object_object_get(mp_o, "inv");
@@ -2320,7 +2351,7 @@ map* load_map (user *player) {
     strcpy(mp->inv->talisman_def, json_object_get_string(json_object_object_get(inv_o, "talisman_def")));
     mp->inv->talisman_def_attr = json_object_get_int64(json_object_object_get(inv_o, "talisman_def_attr"));
 
-    json_object_put(src);
+    // json_object_put(src);
     return mp;
 
 }
