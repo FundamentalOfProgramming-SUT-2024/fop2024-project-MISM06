@@ -180,7 +180,7 @@ void power_bar_show () { //1:dp, 2:stamina, 3:speed, 4:damage;
     wrefresh(bar_win);
 }
 
-void refresh_map(map *mp) {
+void refresh_map(map *mp, user *player) {
     if (mp_win == NULL) mp_win = newwin(line_lvl, col_lvl, 0, startx_lvl);
     else wclear(mp_win);
 
@@ -281,9 +281,9 @@ void refresh_map(map *mp) {
         }
     }
 
-    wattron(mp_win, hero_attr);
+    wattron(mp_win, A_BOLD | COLOR_PAIR(player->hero_color));
     mvwprintw(mp_win, mp->hero_place.y, mp->hero_place.x, "%s", hero);
-    wattroff(mp_win, hero_attr);
+    wattroff(mp_win, A_BOLD | COLOR_PAIR(player->hero_color));
     wrefresh(mp_win);
 }
 
@@ -475,7 +475,7 @@ void refresh_game (map *mp, user *player) {
     mp->enchant_damage = enchant_damage;
     mp->enchant_speed = enchant_speed;
     power_bar_show();
-    refresh_map(mp);
+    refresh_map(mp, player);
     refresh_info_box(mp, player);
 }
 
@@ -1656,6 +1656,7 @@ void play_with_user (map *mp, user * player) {
 
 void start_a_new_game (user * player) {
     
+    
     refresh();
     set_colors();
     init_elmnts();
@@ -1673,18 +1674,4 @@ void start_a_new_game (user * player) {
     refresh();
     
     
-}
-
-int main() {
-    setlocale(LC_ALL,"");
-    initscr();
-    curs_set(0);
-    noecho();
-    start_color();
-    use_default_colors();
-    keypad(stdscr, true);
-    cbreak();
-    user *player = raw_user();
-    start_a_new_game(player);
-    endwin();
 }

@@ -50,6 +50,7 @@ typedef struct user_type {
     int difficulty;
     char *music;
     int hero_color;
+    int is_music_on;
 } user;
 
 void set_colors ();
@@ -62,6 +63,8 @@ void initial_page();
 WINDOW* make_center_window();
 void message_box (char *msg);
 void message_box_no_end (char *msg);
+int open_choosing(user *player, char **options, int n);
+void open_setting (user *player);
 int do_menu_stuff (int num_op, char **option, int *slcted, char *username);
 user* register_user();
 user* log_in_user();

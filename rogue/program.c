@@ -5,6 +5,7 @@
 
 #include "menu.h"
 #include "map.h"
+#include "movement.h"
 
 int main() {
     setlocale(LC_ALL, "");
@@ -13,6 +14,7 @@ int main() {
     curs_set(0);
     noecho();
     start_color();
+    use_default_colors();
     set_colors();
     init_elmnts();
     keypad(stdscr, true);
@@ -31,14 +33,14 @@ int main() {
                 message_box("Log in first!");
                 continue;
             }
-            message_box("comming soon!");
+            message_box("NO game to continue!");
         }
         if (!strcmp("New game", option[opt])) {
             if (user_name_current == NULL) {
                 message_box("Log in first!");
                 continue;
             }
-            // message_box("comming soon!!");
+            start_a_new_game(player);
             
         }
         if (!strcmp("Log in", option[opt])) {
@@ -66,7 +68,7 @@ int main() {
                 message_box("Log in first!");
                 continue;
             }
-            message_box("comming soon!");
+            open_setting(player);
         }
         if (!strcmp("Quit game", option[opt])) {
             message_box("Have a good life champ :_)");

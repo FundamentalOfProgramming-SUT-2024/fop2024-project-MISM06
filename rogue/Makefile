@@ -1,9 +1,12 @@
-all : movement.out
+all : program.out
 
-movement.out : map.o menu.o movement.o
-	gcc menu.o map.o movement.o -o movement.out -lncursesw -ljson-c
+program.out : map.o menu.o movement.o program.o
+	gcc menu.o map.o movement.o program.o -o program.out -lncursesw -ljson-c
 
-movement.o : movement.c
+program.o : program.c
+	gcc -c program.c -o program.o
+
+movement.o : movement.c movement.h
 	gcc -c movement.c -o movement.o
 
 menu.o : menu.c menu.h

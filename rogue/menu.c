@@ -22,7 +22,7 @@ void set_colors () {
     init_pair(PURPLE_D_ON_BLACK, PURPLE_DARK, BLACK);
     init_pair(RED_ON_BLACK, RED, BLACK);
     init_pair(BLUE_ON_BLACK, COLOR_BLUE, BLACK);
-    init_pair(CYAN_ON_BLACK, COLOR_CYAN, COLOR_BLACK);
+    init_pair(CYAN_ON_BLACK, COLOR_CYAN, BLACK);
     init_pair(YELLOW_ON_BLACK, PURE_YELLOW, BLACK);
     init_pair(GREEN_ON_BLACK, COLOR_GREEN, BLACK);
     init_pair(WHITE_ON_GRAY, WHITE, GRAY);
@@ -84,6 +84,7 @@ user* raw_user() {
     new_user->is_guest = 0;
     new_user->max_gold = 0;
     new_user->total_gold = 0;
+    new_user->is_music_on = 1;
     return new_user;
 }
 
@@ -107,9 +108,9 @@ WINDOW* make_center_window() {
     int startx = (COLS - center_col) / 2;
     WINDOW *win = newwin(center_line, center_col, starty, startx);
     keypad(win, true);
-    wattron(win, A_DIM);
+    wattron(win, A_DIM | COLOR_PAIR(BLUE_ON_BLACK));
     box(win, 0, 0);
-    wattroff(win, A_DIM);
+    wattroff(win, A_DIM | COLOR_PAIR(BLUE_ON_BLACK));
     return win;
 }
 void message_box (char *msg) { //you can use it to interact with player
@@ -147,6 +148,97 @@ void message_box_no_end (char *msg) { //you can use it to interact with player
     mvwaddstr(win, 1, 1, msg);
     wrefresh(win);
     remnant = win;
+}
+
+int open_choosing(user *player, char **options, int n) {
+    WINDOW *win = make_center_window();
+    int selected = 0;
+    int num_op = n;
+    int ch;
+    do {
+        wattron(win, COLOR_PAIR(13));
+        for (int i = 0; i < num_op; i++) {
+            if (i == selected) wattron(win, A_REVERSE);
+            mvwprintw(win, i + 1, 1, "%s", options[i]);
+            if (i == selected) wattroff(win, A_REVERSE);
+        }
+        wrefresh(win);
+        ch = wgetch(win);
+        switch (ch) {
+            case KEY_UP :
+                selected += num_op;
+                --selected;
+                selected %= num_op;
+                break;
+            case KEY_DOWN :
+                ++selected;
+                selected %= num_op;
+                break;
+            case 10 :
+                break;
+            case KEY_F(1): selected = -1; break;
+            default :
+                message_box("Use up and down keys!");
+        }
+    } while (ch != 10 && selected >= 0);
+    wclear(win);
+    wrefresh(win);
+    delwin(win);
+    return selected;
+}
+
+void open_setting (user *player) {
+    char *options[] = {"Change Difficulty", "Change color of hero", "Change music", "Disable music", "Enable music"};
+    int slct;
+    do {
+        slct = open_choosing(player, options, 5);
+        switch(slct) {
+            case 0:
+                char *opt2[] = {"EASY", "NORMAL", "HARD"};
+                int t = open_choosing(player, opt2, 3);
+                switch(t) {
+                    case 0:
+                        player->difficulty = dif_easy;
+                        break;
+                    case 1:
+                        player->difficulty = dif_normal;
+                        break;
+                    case 2:
+                        player->difficulty = dif_hard;
+                        break;
+                    default : break;
+                }
+                break;
+            case 1:
+                char *opt3[] = {"WHITE (default)", "RED", "YELLOW", "BLUE"};
+                int t2 = open_choosing(player, opt3, 4);
+                switch(t2) {
+                    case 0:
+                        player->hero_color = 18;
+                        break;
+                    case 1:
+                        player->hero_color = 11;
+                        break;
+                    case 2:
+                        player->hero_color = 14;
+                        break;
+                    case 3:
+                        player->hero_color = 12;
+                    default : break;
+                }
+                break;
+            case 2:
+                message_box("coming soon!");
+                break;
+            case 3:
+                player->is_music_on = 0;
+                break;
+            case 4:
+                player->is_music_on = 1;
+                break;
+            default : break;
+        }
+    } while (slct >= 0);
 }
 
 int do_menu_stuff (int num_op, char **option, int *slcted, char *username) {
@@ -289,6 +381,7 @@ user* register_user() {
     new_user->game_started = 0;
     new_user->game_ended = 0;
     new_user->difficulty = dif_normal;
+    new_user->is_music_on = 1;
     strcpy(new_user->username, ans[1]);
     strcpy(new_user->password, ans[2]);
     char temp[30];
@@ -307,6 +400,7 @@ user* register_user() {
     json_object_object_add(new_object, "last_save_of_game", json_object_new_string(new_user->last_save_of_game));
     json_object_object_add(new_object, "music", json_object_new_string(new_user->music));
     json_object_object_add(new_object, "hero_color", json_object_new_int(new_user->hero_color));
+    json_object_object_add(new_object, "is_music_on", json_object_new_int(new_user->is_music_on));
     json_object_object_add(users, new_user->username, new_object);
 
     data = fopen("users_info.json", "w");
@@ -421,6 +515,7 @@ user* log_in_user() {
     new_user->game_started = json_object_get_int(json_object_object_get(user_object, "game_started"));
     new_user->game_ended = json_object_get_int(json_object_object_get(user_object, "game_ended"));
     new_user->difficulty = json_object_get_int(json_object_object_get(user_object, "difficulty"));
+    new_user->is_music_on = json_object_get_int(json_object_object_get(user_object, "is_music_on"));
     new_user->is_guest = 0;
     strcpy(new_user->username, ans[0]);
     strcpy(new_user->password, ans[1]);
