@@ -268,8 +268,11 @@ int is_filled(lvl *lv, int y, int x) {
 }
 
 int is_adjance(int y1, int x1, int y2, int x2) {
-    if (y1 == y2 && (((x1 - x2) == 1) || ((x2 - x1) == 1))) return 1;
-    if (x1 == x2 && (((y1 - y2) == 1) || ((y2 - y1) == 1))) return 1;
+    int h = y1 - y2;
+    int w = x1 - x2;
+    if (h < 0) h *= -1;
+    if (w < 0) w *= -1;
+    if ((h + w) == 1) return 1;
     return 0;
 }
 
@@ -574,19 +577,19 @@ lvl* make_lvl(int diff, int is_first_lvl, int is_last_lvl) {
     if (lv->nightmare_room_id) {
         lv->nightmare_room_id = lv->room_num;
         ++(lv->room_num);
-    } else lv->nightmare_room_id = 5000;
+    } else lv->nightmare_room_id = 5001;
 
     lv->enchant_room_id = get_rand(0, 1);
     if (lv->enchant_room_id) {
         lv->enchant_room_id = lv->room_num;
         ++(lv->room_num);
-    } else lv->enchant_room_id = 5000;
+    } else lv->enchant_room_id = 5002;
 
     lv->treasure_room_id = is_last_lvl;
     if (lv->treasure_room_id) {
         lv->treasure_room_id = lv->room_num;
         ++(lv->room_num);
-    } else lv->treasure_room_id = 5000;
+    } else lv->treasure_room_id = 5003;
 
     lv->rooms = (room **)malloc(lv->room_num * sizeof(room *));
     lv->cell = (chtype **)malloc(line_lvl * sizeof(chtype *));
@@ -1253,9 +1256,9 @@ void add_pickable_things (int diff, lvl *lv) {
                 strcpy(talisman->cells[y][x], talisman_damage);
             }
         } else if (i == lv->enchant_room_id) {
-            int health = get_rand(1, 2);
-            int damage = get_rand(1, 2);
-            int speed = get_rand(1, 2);
+            int health = get_rand(1, 4);
+            int damage = get_rand(1, 4);
+            int speed = get_rand(1, 4);
             while (health--) {
                 elmnt *temp = give_free_elmnt_in_room(lv, i);
                 int y = temp->y, x = temp->x;
@@ -1717,6 +1720,36 @@ map* generate_map(user *player) {
     mp->inv->talisman_def_attr = talisman_health_attr;
 
     mp->time = 0;
+
+    for (int k = 0; k < mp->lvl_num; k++) {
+        lvl *lv = mp->lvls[k];
+        int src = lv->room_id[lv->up_stair.y][lv->up_stair.x];
+        for (int i = lv->rooms[src]->starty; i < lv->rooms[src]->starty + lv->rooms[src]->h; i++) {
+            for (int j = lv->rooms[src]->startx; j < lv->rooms[src]->startx + lv->rooms[src]->w; j++) {
+                lv->explore_sit[i][j] = 1;
+            }
+        }
+        for (int v = 0; v < lv->reg_room_num; v++) {
+            if (v == src) continue;
+            for (int i = lv->rooms[v]->starty; i < lv->rooms[v]->starty + lv->rooms[v]->h; i++) {
+                lv->explore_sit[i][lv->rooms[v]->startx] = 1;
+                lv->explore_sit[i][lv->rooms[v]->startx + lv->rooms[v]->w - 1] = 1;
+            }
+            for (int j = lv->rooms[v]->startx; j < lv->rooms[v]->startx + lv->rooms[v]->w; j++) {
+                lv->explore_sit[lv->rooms[v]->starty][j] = 1;
+                lv->explore_sit[lv->rooms[v]->starty + lv->rooms[v]->h - 1][j] = 1; 
+            }
+        }
+        for (int i = 0; i < line_lvl; i++) {
+            lv->explore_sit[i][0] = 1;
+            lv->explore_sit[i][col_lvl - 1] = 1;
+        }
+        for (int j = 0; j < col_lvl; j++) {
+            lv->explore_sit[0][j] = 1;
+            lv->explore_sit[line_lvl - 1][j] = 1;
+        }
+    }
+    
 
     return mp;
 }

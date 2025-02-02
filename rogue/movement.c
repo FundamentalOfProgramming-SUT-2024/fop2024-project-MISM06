@@ -12,6 +12,7 @@ int hp, Max_hp, hp_bar_len;
 int stamina, Max_stamina, stamina_bar_len;
 int enchant_speed, enchant_damage, Max_enchant, enchant_bar_len;
 int diff;
+int M_mode_on;
 WINDOW *bar_win;
 WINDOW *mp_win;
 WINDOW *info_win;
@@ -37,6 +38,8 @@ void init_windows() {
     wborder(win, ACS_VLINE, ACS_VLINE, ACS_HLINE, ACS_HLINE, ACS_ULCORNER | COLOR_PAIR(x),
                     ACS_URCORNER | COLOR_PAIR(x), ACS_LLCORNER | COLOR_PAIR(x),
                     ACS_LRCORNER | COLOR_PAIR(x));
+    wattron(win, A_BOLD |COLOR_PAIR(GRAY_ON_BLACK));
+    mvwprintw(win, 0, 5, "Message");
     wrefresh(win);
 }
 
@@ -51,6 +54,7 @@ void init_elements_movement() {
     hp_bar_len = 30;
     stamina_bar_len = 20;
     enchant_bar_len = 10;
+    M_mode_on = 0;
 
     bar_win = NULL;
     mp_win = NULL;
@@ -189,6 +193,7 @@ void refresh_map(map *mp) {
     //cell and hidden cells;
     for (int i = 0; i < line_lvl; i++) {
         for (int j = 0; j < col_lvl; j++) {
+            if (lv->explore_sit[i][j] == 0 && M_mode_on == 0) continue;
             if (lv->cell[i][j] == 0 && lv->hidden_sit[i][j] == 0) continue;
             mvwaddch(mp_win, i, j, lv->cell[i][j]);
             if (lv->hidden_sit[i][j] == 2) {
@@ -200,6 +205,7 @@ void refresh_map(map *mp) {
     //food;
     for (int i = 0; i < line_lvl; i++) {
         for (int j = 0; j < col_lvl; j++) {
+            if (lv->explore_sit[i][j] == 0 && M_mode_on == 0) continue;
             if (lv->foods->pickable_sit[i][j]) {
                 wattron(mp_win,lv->foods->attr[i][j]);
                 mvwprintw(mp_win, i, j, "%s", lv->foods->cells[i][j]);
@@ -211,6 +217,7 @@ void refresh_map(map *mp) {
     //golds;
     for (int i = 0; i < line_lvl; i++) {
         for (int j = 0; j < col_lvl; j++) {
+            if (lv->explore_sit[i][j] == 0 && M_mode_on == 0) continue;
             if (lv->golds->pickable_sit[i][j]) {
                 wattron(mp_win,lv->golds->attr[i][j]);
                 mvwprintw(mp_win, i, j, "%s", lv->golds->cells[i][j]);
@@ -222,6 +229,7 @@ void refresh_map(map *mp) {
     //talismans;
     for (int i = 0; i < line_lvl; i++) {
         for (int j = 0; j < col_lvl; j++) {
+            if (lv->explore_sit[i][j] == 0 && M_mode_on == 0) continue;
             if (lv->talismans->pickable_sit[i][j]) {
                 wattron(mp_win,lv->talismans->attr[i][j]);
                 mvwprintw(mp_win, i, j, "%s", lv->talismans->cells[i][j]);
@@ -233,6 +241,7 @@ void refresh_map(map *mp) {
     //weapons;
     for (int i = 0; i < line_lvl; i++) {
         for (int j = 0; j < col_lvl; j++) {
+            if (lv->explore_sit[i][j] == 0 && M_mode_on == 0) continue;
             if (lv->weapons->pickable_sit[i][j]) {
                 wattron(mp_win,lv->weapons->attr[i][j]);
                 mvwprintw(mp_win, i, j, "%s", lv->weapons->cells[i][j]);
@@ -244,6 +253,7 @@ void refresh_map(map *mp) {
     //monster;
     for (int i = 0; i < line_lvl; i++) {
         for (int j = 0; j < col_lvl; j++) {
+            if (lv->explore_sit[i][j] == 0 && M_mode_on == 0) continue;
             for (int k = 0; k < lv->monster_num; k++) {
                 if (lv->monster[k]->cnt[i][j]) {
                     wattron(mp_win,lv->monster[k]->attr);
@@ -642,6 +652,45 @@ int move_one (map *mp, elmnt dest, int do_pick) { //0 cant move this way, 1 move
         if (lv->room_id[y][x] == lv->room_id[y][x - 1] || lv->room_id[y][x - 1] >= lv->reg_room_num)
             lv->hidden_sit[y][x - 1] = 2;
     }
+
+    int src = lv->room_id[y][x];
+    if (src != lv->nightmare_room_id && src >= 0) {
+        for (int i = lv->rooms[src]->starty; i < lv->rooms[src]->starty + lv->rooms[src]->h; i++) {
+            for (int j = lv->rooms[src]->startx; j < lv->rooms[src]->startx + lv->rooms[src]->w; j++) {
+                lv->explore_sit[i][j] = 1;
+            }
+        }
+    }
+
+    int v, u;
+    for (int s = -2; s <= 2; s++) {
+        for (int t = -2; t <= 2; t++) {
+            v = y + s;
+            u = x + t;
+            if (v <= 0 || v >= line_lvl - 1) continue;
+            if (u <= 0 || u >= col_lvl - 1) continue;
+            if (lv->explore_sit[v][u] == 1) continue;
+            if (lv->cell[y][x] == el_road) {
+                if (lv->cell[v][u] == el_road) lv->explore_sit[v][u] = 1;
+                else if (is_wall(lv->cell[v][u]) || lv->cell[v][u] == el_door || lv->cell[v][u] == el_window) lv->explore_sit[v][u] = 1;
+            } else {
+                int k = lv->room_id[y][x]; //nightmare;
+                if (lv->hidden_cell[y][x] == el_hidden_door && k == lv->nightmare_room_id) {
+                    
+                    for (int i = lv->rooms[k]->starty; i < lv->rooms[k]->starty + lv->rooms[k]->h; i++) {
+                        lv->explore_sit[i][lv->rooms[k]->startx] = 1;
+                        lv->explore_sit[i][lv->rooms[k]->startx + lv->rooms[k]->w - 1] = 1;
+                    }
+                    for (int j = lv->rooms[k]->startx; j < lv->rooms[k]->startx + lv->rooms[k]->w; j++) {
+                        lv->explore_sit[lv->rooms[k]->starty][j] = 1;
+                        lv->explore_sit[lv->rooms[k]->starty + lv->rooms[k]->h - 1][j] = 1; 
+                    }
+                }
+                lv->explore_sit[v][u] = 1;
+            }
+        }
+    }
+
     return 1;
 
 }
@@ -879,6 +928,155 @@ void open_inventory (map *mp, user *player) {
 
 }
 
+int adjance (int y1, int x1, int y2, int x2) {
+    int h = y1 - y2;
+    int w = x1 - x2;
+    if (h < 0) h *= -1;
+    if (w < 0) w *= -1;
+    if ((h + w) == 1) return 1;
+    return 0;
+}
+
+void move_enemy (map *mp, user *player, int mon_id) {
+    lvl *lv = mp->lvls[mp->curr_lvl];
+    int hy = mp->hero_place.y, hx = mp->hero_place.x;
+    int rm_id = lv->room_id[hy][hx];
+    if (!(rm_id >= 0 && rm_id < lv->room_num)) return;
+    int sty = lv->rooms[rm_id]->starty;
+    int stx = lv->rooms[rm_id]->startx;
+    int len_y = lv->rooms[rm_id]->h;
+    int len_x = lv->rooms[rm_id]->w;
+
+    
+    enemy *mon = lv->monster[mon_id];
+    int cnt[700][700], hp[700][700], token[700][700];
+    for (int i = sty; i < sty + len_y; i++) {
+        for (int j = stx; j < stx + len_x; j++) {
+            cnt[i][j] = 0;
+            hp[i][j] = 0;
+            token[i][j] = 0;
+        }
+    }
+    for (int i = sty; i < len_y + sty; i++) {
+        for (int j = stx; j < len_x + stx; j++) {
+            if (mon->cnt[i][j] == 0) continue;
+            if (adjance(i, j, hy, hx)) {
+                if (mon->token[i][j] < mon->max_token) token[i][j] += mon->max_token;
+                else token[i][j] += mon->token[i][j];
+                cnt[i][j] += 1;
+                hp[i][j] += mon->hp[i][j];
+            } else {
+                if (mon->token[i][j] == 0) {
+                    hp[i][j] += mon->hp[i][j];
+                    cnt[i][j] += 1;
+                    continue;
+                }
+                
+                int y = i, x = j;
+                if (i < hy) ++y;
+                else if (i > hy) --y;
+                if (j < hx) ++x;
+                else if (j > hx) --x;
+                if (y == hy && x == hx) {
+                    if (!(lv->cell[i][x] == 0 || lv->cell[i][x] == el_door || is_wall(lv->cell[i][x]) || lv->hidden_sit[i][x] || lv->cell[i][x] == el_window)) {
+                        y = i;
+                    } else x = j;                                           
+                }
+                if (lv->cell[y][x] == 0 || lv->cell[y][x] == el_door || is_wall(lv->cell[y][x]) || lv->hidden_sit[y][x] || lv->cell[y][x] == el_window) {
+                    token[i][j] += mon->token[i][j];
+                    cnt[i][j] += 1;
+                    hp[i][j] += mon->hp[i][j];
+                    continue;
+                }
+                cnt[y][x] += 1;
+                hp[y][x] += mon->hp[i][j];
+                token[y][x] += mon->token[i][j];
+
+            }
+        }
+    }
+    
+    for (int i = sty; i < sty + len_y; i++) {
+        for (int j = stx; j < stx + len_x; j++) {
+            if (cnt[i][j]) cnt[i][j] = 1;
+            mon->cnt[i][j] = cnt[i][j];
+            mon->token[i][j] = token[i][j];
+            mon->hp[i][j] = hp[i][j];
+        }
+    }
+
+}
+
+void enemy_attack (map *mp, user *player, int mon_id) {
+    lvl *lv = mp->lvls[mp->curr_lvl];
+    int hy = mp->hero_place.y, hx = mp->hero_place.x;
+    int rm_id = lv->room_id[hy][hx];
+    if (!(rm_id >= 0 && rm_id < lv->room_num)) return;
+    int sty = lv->rooms[rm_id]->starty;
+    int stx = lv->rooms[rm_id]->startx;
+    int len_y = lv->rooms[rm_id]->h;
+    int len_x = lv->rooms[rm_id]->w;
+    
+    enemy *mon = lv->monster[mon_id];
+    for (int i = sty; i < sty + len_y; i++) {
+        for (int j = stx; j < stx + len_x; j++) {
+            if (mon->cnt[i][j] && adjance(i, j, hy, hx)) {
+                hp -= mon->damage;
+                if (player->difficulty == dif_hard) hp -= mon->damage;
+                if (player->difficulty == dif_easy) hp += 5;
+                show_message_cover("A critical hit from ", 0);
+                switch(mon_id) {
+                    case 0 : show_message_continue("Deamon."); break;
+                    case 1 : show_message_continue("Fire Breathing Monster.");break;
+                    case 2 : show_message_continue("Giant."); break;
+                    case 3 : show_message_continue("Snake."); break;
+                    case 4 : show_message_continue("Undead."); break;
+                    default : show_message_continue("GOD."); break;
+                }
+            }
+        }
+    }
+        
+    
+}
+
+void now_its_enemy_turn (map *mp, user *player) {
+    move_enemy(mp, player, 0);
+    enemy_attack(mp, player, 0);
+    move_enemy(mp, player, 1);
+    enemy_attack(mp, player, 1);
+    if (dif_normal == player->difficulty) {
+        enemy_attack(mp, player, 2);
+        move_enemy(mp, player, 2);
+
+        enemy_attack(mp, player, 3);
+        move_enemy(mp, player, 3);
+
+        move_enemy(mp, player, 4);
+        enemy_attack(mp, player, 4);
+    
+    } else if (dif_hard == player->difficulty) {
+        move_enemy(mp, player, 2);
+        enemy_attack(mp, player, 2);
+
+        move_enemy(mp, player, 3);
+        enemy_attack(mp, player, 3);
+
+        move_enemy(mp, player, 4);
+        enemy_attack(mp, player, 4);
+    } else {
+        enemy_attack(mp, player, 2);
+        move_enemy(mp, player, 2);
+
+        enemy_attack(mp, player, 3);
+        move_enemy(mp, player, 3);
+
+        enemy_attack(mp, player, 4);
+        move_enemy(mp, player, 4);
+       
+    }
+}
+
 void play_with_user (map *mp, user * player) {
     refresh_game(mp, player);
     int ch;
@@ -1000,10 +1198,19 @@ void play_with_user (map *mp, user * player) {
                     for (int j = 0; j < lv->monster_num; j++) {
                         if (lv->monster[j]->cnt[y][x]) {
                             lv->monster[j]->hp[y][x] -= dmg;
+                            lv->monster[j]->token[y][x] = lv->monster[j]->max_token;
                             if (lv->monster[j]->hp[y][x] <= 0) {
                                 lv->monster[j]->hp[y][x] = 0;
                                 lv->monster[j]->cnt[y][x] = 0;
                                 show_message_cover("It's dead now.", 0);
+                                switch(lv->monster[j]->look) {
+                                            case 'D' :mp->inv->gold_cnt += 5; break;
+                                            case 'F' :mp->inv->gold_cnt += 7; break;
+                                            case 'G' :mp->inv->gold_cnt += 15 + (10 * (player->difficulty / 2)); break;
+                                            case 'S' :mp->inv->gold_cnt += 20 + (15 * (player->difficulty / 2)); break;
+                                            case 'U' :mp->inv->gold_cnt += 30 + (15 * (player->difficulty / 2)); break;
+                                            default : break;
+                                        }
                             }
                         }
                     }
@@ -1015,7 +1222,6 @@ void play_with_user (map *mp, user * player) {
                 if (!mp->inv->weapon_sword_cnt) {
                     show_message_cover("No Sword. HAH!", 0);
                 } else {
-                    mp->inv->weapon_sword_cnt -= 1;
                     show_message_cover("AAAAAAA!", 0);
                     for (int i = 0; i < 8; i++) {
                         int y = mp->hero_place.y + del_y[i];
@@ -1024,10 +1230,19 @@ void play_with_user (map *mp, user * player) {
                         for (int j = 0; j < lv->monster_num; j++) {
                             if (lv->monster[j]->cnt[y][x]) {
                                 lv->monster[j]->hp[y][x] -= dmg;
+                                lv->monster[j]->token[y][x] = lv->monster[j]->max_token;
                                 if (lv->monster[j]->hp[y][x] <= 0) {
                                     lv->monster[j]->hp[y][x] = 0;
                                     lv->monster[j]->cnt[y][x] = 0;
                                     show_message_cover("It's dead now.", 0);
+                                    switch(lv->monster[j]->look) {
+                                            case 'D' :mp->inv->gold_cnt += 5; break;
+                                            case 'F' :mp->inv->gold_cnt += 7; break;
+                                            case 'G' :mp->inv->gold_cnt += 15 + (10 * (player->difficulty / 2)); break;
+                                            case 'S' :mp->inv->gold_cnt += 20 + (15 * (player->difficulty / 2)); break;
+                                            case 'U' :mp->inv->gold_cnt += 30 + (15 * (player->difficulty / 2)); break;
+                                            default : break;
+                                        }
                                 }
                             }
                         }
@@ -1078,11 +1293,20 @@ void play_with_user (map *mp, user * player) {
                             for (int j = lv->monster_num - 1; j >= 0; --j) {
                                 if (lv->monster[j]->cnt[y2][x2]) {
                                     lv->monster[j]->hp[y2][x2] -= dmg;
+                                    lv->monster[j]->token[y][x] = lv->monster[j]->max_token;
                                     show_message_cover("Nice shot!", 0);
                                     if (lv->monster[j]->hp[y2][x2] <= 0) {
                                         lv->monster[j]->hp[y2][x2] = 0;
                                         lv->monster[j]->cnt[y2][x2] = 0;
                                         show_message_cover("It's dead now.", 0);
+                                        switch(lv->monster[j]->look) {
+                                            case 'D' :mp->inv->gold_cnt += 5; break;
+                                            case 'F' :mp->inv->gold_cnt += 7; break;
+                                            case 'G' :mp->inv->gold_cnt += 15 + (10 * (player->difficulty / 2)); break;
+                                            case 'S' :mp->inv->gold_cnt += 20 + (15 * (player->difficulty / 2)); break;
+                                            case 'U' :mp->inv->gold_cnt += 30 + (15 * (player->difficulty / 2)); break;
+                                            default : break;
+                                        }
                                     }
                                     ct = 0;
                                     break;
@@ -1154,12 +1378,21 @@ void play_with_user (map *mp, user * player) {
                             for (int j = lv->monster_num - 1; j >= 0; --j) {
                                 if (lv->monster[j]->cnt[y2][x2]) {
                                     lv->monster[j]->hp[y2][x2] -= dmg;
+                                    lv->monster[j]->token[y][x] = lv->monster[j]->max_token;
                                     ct = 0;
                                     show_message_cover("Nice shot!", 0);
                                     if (lv->monster[j]->hp[y2][x2] <= 0) {
                                         lv->monster[j]->hp[y2][x2] = 0;
                                         lv->monster[j]->cnt[y2][x2] = 0;
                                         show_message_cover("It's dead now.", 0);
+                                        switch(lv->monster[j]->look) {
+                                            case 'D' :mp->inv->gold_cnt += 5; break;
+                                            case 'F' :mp->inv->gold_cnt += 7; break;
+                                            case 'G' :mp->inv->gold_cnt += 15 + (10 * (player->difficulty / 2)); break;
+                                            case 'S' :mp->inv->gold_cnt += 20 + (15 * (player->difficulty / 2)); break;
+                                            case 'U' :mp->inv->gold_cnt += 30 + (15 * (player->difficulty / 2)); break;
+                                            default : break;
+                                        }
                                     }
                                     break;
                                 }
@@ -1230,15 +1463,25 @@ void play_with_user (map *mp, user * player) {
                             for (int j = lv->monster_num - 1; j >= 0; --j) {
                                 if (lv->monster[j]->cnt[y2][x2]) {
                                     lv->monster[j]->hp[y2][x2] -= dmg;
+                                    lv->monster[j]->token[y][x] = lv->monster[j]->max_token;
                                     ct = 0;
                                     show_message_cover("Nice shot!", 0);
                                     if (lv->monster[j]->hp[y2][x2] <= 0) {
                                         lv->monster[j]->hp[y2][x2] = 0;
-                                        lv->monster[j]->cnt[y2][x2] = 0; 
+                                        lv->monster[j]->cnt[y2][x2] = 0;
+                                        show_message_cover("It's dead now.", 0);
+                                        switch(lv->monster[j]->look) {
+                                            case 'D' :mp->inv->gold_cnt += 5; break;
+                                            case 'F' :mp->inv->gold_cnt += 7; break;
+                                            case 'G' :mp->inv->gold_cnt += 15 + (10 * (player->difficulty / 2)); break;
+                                            case 'S' :mp->inv->gold_cnt += 20 + (15 * (player->difficulty / 2)); break;
+                                            case 'U' :mp->inv->gold_cnt += 30 + (15 * (player->difficulty / 2)); break;
+                                            default : break;
+                                        }
                                     }
                                     lv->monster[j]->token[y2][x2] = 0;
                                     lv->monster[j]->max_token = 0;
-                                    show_message_cover("It's dead now.", 0);
+                                    
                                     break;
                                 }
                             }
@@ -1266,6 +1509,8 @@ void play_with_user (map *mp, user * player) {
                 }
             }
             did = 1;
+        } else if (ch == 'M') { 
+            M_mode_on ^= 1;
         } else {
             did = move_player(mp, ch, is_force_on, do_pick);
         }
@@ -1280,9 +1525,15 @@ void play_with_user (map *mp, user * player) {
             if (mp->lvls[mp->curr_lvl]->room_id[mp->hero_place.y][mp->hero_place.x] == mp->lvls[mp->curr_lvl]->enchant_room_id) {
                 hp -= Max_hp / 50;
             }
+            if (enchant_speed > 0) {
+                if (mp->time % 2) now_its_enemy_turn(mp, player);
+            } else now_its_enemy_turn(mp, player);
         }
 
-        if (hp < 0) hp = 0;
+        if (hp < 0) {
+            hp = 0;
+            lost(mp, player);
+        }
         if (hp > Max_hp) hp = Max_hp;
         if (stamina < 0) stamina = 0;
         if (stamina > Max_stamina) stamina = Max_stamina;
