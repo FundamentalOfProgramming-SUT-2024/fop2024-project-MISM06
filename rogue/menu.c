@@ -34,6 +34,10 @@ void set_colors () {
 
 }
 
+int get_rand2(int l, int r) {
+    return l + (rand() % (r - l + 1));
+}
+
 void str_set(char **dest, char *src, int l) {
     if (src == NULL) {
         *dest = NULL;
@@ -297,7 +301,7 @@ void scoreboard_show (user *player) {
     int page_num = (n + (view - 1)) / view;
     
     int lny = view + 6;
-    int lnx = 61;
+    int lnx = 64;
     int sty = (LINES - lny) / 2;
     int stx = (COLS - lnx) / 2;
     WINDOW *win = newwin(lny, lnx, sty, stx);
@@ -371,9 +375,9 @@ void scoreboard_show (user *player) {
             // mvwprintw(win, i + 3, 49, "|");
             mvwprintw(win, i + 3 - kf, 50, "%d", game_started[id]);
             // mvwprintw(win, i + 3, 53, "|");
-            if (i == 0) mvwprintw(win, i + 3 - kf, 54, "LEGENG");
-            if (i == 1) mvwprintw(win, i + 3 - kf, 54, "MASTER");
-            if (i == 2) mvwprintw(win, i + 3 - kf, 54, "EXPERT");
+            if (i == 0) mvwprintw(win, i + 3 - kf, 54, "LEGENG \U0001F947");
+            if (i == 1) mvwprintw(win, i + 3 - kf, 54, "MASTER \U0001F948");
+            if (i == 2) mvwprintw(win, i + 3 - kf, 54, "EXPERT \U0001F949");
             wattroff(win, attr);
         }
         wrefresh(win);
@@ -571,6 +575,21 @@ user* register_user() {
         mvwaddstr(win, i + 1, 1, msg[i]);
     }
     for (int i = 0; i < num_msg; i++) {
+        if (i == 2) {
+            message_box("press F2 for random password.");
+            int ch = getch();
+            if (ch == KEY_F(2)) {
+                char temp[100];
+                temp[0] = get_rand2('A', 'Z');
+                temp[1] = get_rand2('a', 'z');
+                temp[2] = get_rand2('0', '9');
+                int n = get_rand2(10, 15);
+                for (int i = 3; i < n; i++) {
+                    temp[i] = get_rand2(50, 120);
+                }
+                message_box(temp);
+            }
+        }
         int valid = 0;
         while (!valid) {
             for (int j = 0; j < 30; j++) mvwaddch(win,i + 1, 1 + strlen(msg[i]) + j, ' ');
@@ -608,6 +627,7 @@ user* register_user() {
                     continue;
                 }
             }
+            
             if (!strcmp(msg[i], "Password : ")) {
                 if (strlen(ans[i]) < 7) {
                     valid = 0;
@@ -693,6 +713,9 @@ user* log_in_user() {
     wattroff(win, COLOR_PAIR(GRAY_ON_BLACK) | A_BOLD);
     wattron(win, COLOR_PAIR(13));
     mvwaddstr(win, 1, 1, "For log in as 'guest' press 'F1'");
+    mvwaddstr(win, getmaxy(win) - 3, 1, "For forgotten password press 'F2'");
+    mvwaddstr(win, getmaxy(win) - 2, 1, "Press it after Incorect password.");
+
     wrefresh(win);
     int chh = wgetch(win);
     if (chh == KEY_F(1)) {
@@ -732,7 +755,7 @@ user* log_in_user() {
     fclose(data);
     buffer[fsz] = '\0';
     // mvprintw(0, 0, "%lu", fsz);
-    getch();
+    // getch();
     struct json_object* users = json_tokener_parse(buffer);
     if (!users) {
         users = json_object_new_object();
@@ -775,6 +798,12 @@ user* log_in_user() {
                 if (strcmp(ans[i], json_object_get_string(json_object_object_get(user_object, "password")))) {
                     valid = 0;
                     message_box("Incorrect password");
+                    int ch = getch();
+                    if (ch == KEY_F(2)) {
+                        char temp[50]; temp[0] = '\0';
+                        strcpy(temp, json_object_get_string(json_object_object_get(user_object, "password")));
+                        message_box(temp);
+                    }
                 }
             }
         }

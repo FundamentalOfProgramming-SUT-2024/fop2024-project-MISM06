@@ -9,7 +9,7 @@
 
 int main() {
     setlocale(LC_ALL, "");
-
+    srand(time(0));
     initscr();
     curs_set(0);
     noecho();

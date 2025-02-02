@@ -64,7 +64,7 @@ char *hero;
 chtype hero_attr;
 
 void init_elmnts () {
-    srand(time(0));
+    // srand(time(0));
     remnant = NULL;
     delta_y = 5;
     delta_x = 40;
