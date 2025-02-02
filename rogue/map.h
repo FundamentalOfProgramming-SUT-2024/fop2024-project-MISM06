@@ -165,6 +165,7 @@ typedef struct map_type {
     lvl** lvls;
     Inventory *inv;
     int time;
+    int hp, stamina, enchant_speed, enchant_damage;
 } map;
 
 
@@ -212,5 +213,9 @@ lvl* make_lvl(int diff, int is_first_lvl, int is_last_lvl);
 void add_pickable_things (int diff, lvl *lv);
 
 map* generate_map(user *player);
+
+void save_map (map *mp, user *player);
+
+map* load_map (user *player);
 
 #endif

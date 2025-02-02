@@ -11,7 +11,6 @@
 int hp, Max_hp, hp_bar_len;
 int stamina, Max_stamina, stamina_bar_len;
 int enchant_speed, enchant_damage, Max_enchant, enchant_bar_len;
-int diff;
 int M_mode_on;
 WINDOW *bar_win;
 WINDOW *mp_win;
@@ -47,10 +46,6 @@ void init_elements_movement() {
     Max_hp = 100;
     Max_stamina = 100;
     Max_enchant = 100;
-    hp = Max_hp;
-    stamina = Max_stamina;
-    enchant_speed = 0;
-    enchant_damage = 0;
     hp_bar_len = 30;
     stamina_bar_len = 20;
     enchant_bar_len = 10;
@@ -453,6 +448,10 @@ void refresh_info_box (map *mp, user *player) {
 }
 
 void refresh_game (map *mp, user *player) {
+    mp->hp = hp;
+    mp->stamina = stamina;
+    mp->enchant_damage = enchant_damage;
+    mp->enchant_speed = enchant_speed;
     power_bar_show();
     refresh_map(mp);
     refresh_info_box(mp, player);
@@ -631,7 +630,7 @@ int move_one (map *mp, elmnt dest, int do_pick) { //0 cant move this way, 1 move
     }
     
     if (lv->cell[y][x] == el_trap) {
-        hp -= 5 * diff;
+        hp -= 5;
         show_message_cover("Oops! you walked on a trap.", 0);
     }
     mp->hero_place.y = dest.y;
@@ -1078,6 +1077,10 @@ void now_its_enemy_turn (map *mp, user *player) {
 }
 
 void play_with_user (map *mp, user * player) {
+    hp = mp->hp;
+    stamina = mp->stamina;
+    enchant_damage = mp->enchant_damage;
+    enchant_speed = mp->enchant_speed;
     refresh_game(mp, player);
     int ch;
     int do_pick = 1;
@@ -1530,10 +1533,7 @@ void play_with_user (map *mp, user * player) {
             } else now_its_enemy_turn(mp, player);
         }
 
-        if (hp < 0) {
-            hp = 0;
-            lost(mp, player);
-        }
+        if (hp < 0) hp = 0;
         if (hp > Max_hp) hp = Max_hp;
         if (stamina < 0) stamina = 0;
         if (stamina > Max_stamina) stamina = Max_stamina;
@@ -1561,7 +1561,6 @@ int main() {
     init_elements_movement();
     user *player = raw_user();
     // player->difficulty = dif_easy;
-    diff = player->difficulty;
     
     map *mp = generate_map(player);
     play_with_user(mp, player);
