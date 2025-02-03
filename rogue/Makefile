@@ -12,5 +12,5 @@ movement.o : movement.c movement.h
 menu.o : menu.c menu.h
 	gcc -c menu.c -o menu.o
 
-map.o : map.c menu.h
+map.o : map.c map.h
 	gcc -c map.c -o map.o

@@ -988,8 +988,8 @@ void move_enemy (map *mp, user *player, int mon_id) {
         for (int j = stx; j < len_x + stx; j++) {
             if (mon->cnt[i][j] == 0) continue;
             if (adjance(i, j, hy, hx)) {
-                if (mon->token[i][j] < mon->max_token) token[i][j] += mon->max_token;
-                else token[i][j] += mon->token[i][j];
+                token[i][j] = mon->max_token;
+                
                 cnt[i][j] += 1;
                 hp[i][j] += mon->hp[i][j];
             } else {
@@ -1017,7 +1017,7 @@ void move_enemy (map *mp, user *player, int mon_id) {
                 }
                 cnt[y][x] += 1;
                 hp[y][x] += mon->hp[i][j];
-                token[y][x] += mon->token[i][j];
+                token[y][x] += mon->token[i][j] - 1;
 
             }
         }
