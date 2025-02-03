@@ -588,11 +588,15 @@ void pick_pos(map *mp, int y, int x) {
     lvl *lv = mp->lvls[mp->curr_lvl];
     if(lv->weapons->pickable_sit[y][x]) { 
         pickable_things *pk = lv->weapons;
-        pk->pickable_sit[y][x] = 0;
-        add_this_to_inv(mp, pk->cells[y][x], pk->attr[y][x], pk->cnt[y][x]);
-        pk->cells[y][x][0] = '\0';
-        pk->attr[y][x] = 0;
-        pk->cnt[y][x] = 0;
+        if (!strcmp(pk->cells[y][x], weapon_sword) && mp->inv->weapon_sword_cnt) {
+            
+        } else {
+            pk->pickable_sit[y][x] = 0;  
+            add_this_to_inv(mp, pk->cells[y][x], pk->attr[y][x], pk->cnt[y][x]);
+            pk->cells[y][x][0] = '\0';
+            pk->attr[y][x] = 0;
+            pk->cnt[y][x] = 0;
+        }
         
     }
     if(lv->talismans->pickable_sit[y][x]) {
@@ -1130,6 +1134,7 @@ void play_with_user (map *mp, user * player) {
     int is_force_on = 0;
     int stamina_circle = 20;
     
+    int time2 = 0;
     int lost = 0;
     int won = 0;
     while ((ch = getch()) != KEY_F(1)) {
@@ -1179,24 +1184,24 @@ void play_with_user (map *mp, user * player) {
             if (!strcmp(mp->inv->food_def, food_reg) && mp->inv->food_def_attr == food_reg_attr) {
                 if(mp->inv->food_reg_cnt) mp->inv->food_reg_cnt -= 1;
                 else show_message_cover("Nothing left.", 0);
-                stamina += Max_stamina / 5;
+                stamina += Max_stamina / 5; time2 = 1;
             }
             if (!strcmp(mp->inv->food_def, food_golden) && mp->inv->food_def_attr == food_golden_attr) {
                 if(mp->inv->food_golden_cnt) mp->inv->food_golden_cnt -= 1;
                 else show_message_cover("Nothing left.", 0);
-                stamina += Max_stamina / 2;
+                stamina += Max_stamina / 2; time2 = 1;
                 enchant_damage += Max_enchant / 2;
             }
             if (!strcmp(mp->inv->food_def, food_magical) && mp->inv->food_def_attr == food_magical_attr) {
                 if(mp->inv->food_magical_cnt) mp->inv->food_magical_cnt -= 1;
                 else show_message_cover("Nothing left.", 0);
-                stamina += Max_stamina / 5;
+                stamina += Max_stamina / 5; time2 = 1;
                 enchant_speed += Max_enchant / 2;
             }
             if (!strcmp(mp->inv->food_def, food_rotten) && mp->inv->food_def_attr == food_rotten_attr) {
                 if(mp->inv->food_magical_cnt) mp->inv->food_magical_cnt -= 1;
                 else show_message_cover("Nothing left.", 0);
-                stamina += Max_stamina / 10;
+                stamina += Max_stamina / 10; time2 = 1;
                 hp -= Max_hp / 20;  
             }
         } else if (ch == 'T') {
@@ -1565,9 +1570,10 @@ void play_with_user (map *mp, user * player) {
 
         if (did) {
             mp->time += 1;
+            time2 += 1;
             if (stamina == Max_stamina) hp += Max_hp / 30;
             if (stamina == 0) hp -= Max_hp / 50;
-            if (mp->time % stamina_circle == 0) stamina -= Max_stamina / 25;
+            if (time2 % stamina_circle == 0) stamina -= Max_stamina / 25;
             enchant_speed -= Max_enchant / 10;
             enchant_damage -= Max_enchant / 10;
             if (mp->lvls[mp->curr_lvl]->room_id[mp->hero_place.y][mp->hero_place.x] == mp->lvls[mp->curr_lvl]->enchant_room_id) {

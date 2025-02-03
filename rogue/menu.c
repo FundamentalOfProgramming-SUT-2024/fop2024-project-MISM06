@@ -333,7 +333,7 @@ void scoreboard_show (user *player) {
             }
         }
     }
-    int view = 20;
+    int view = 10;
     int page = 0;
     int page_num = (n + (view - 1)) / view;
     
@@ -399,8 +399,8 @@ void scoreboard_show (user *player) {
                 attr |= COLOR_PAIR(GRAY_ON_BLACK);
             }
             wattron(win, attr);
-            for (int j = 1; j < lnx - 1; j++) mvwprintw(win, i + 3, j, " ");
-            mvwprintw(win, i + 3 - kf, 1, "%d", i);
+            for (int j = 1; j < lnx - 1; j++) mvwprintw(win, i + 3 - kf, j, " ");
+            mvwprintw(win, i + 3 - kf, 1, "%d", i + 1);
             // mvwprintw(win, i + 3, 5, "|");
             mvwprintw(win, i + 3 - kf, 6, "%s", username[id]);
             // mvwprintw(win, i + 3, 31, "|");
@@ -624,6 +624,7 @@ user* register_user() {
                 for (int i = 3; i < n; i++) {
                     temp[i] = get_rand2(50, 120);
                 }
+                temp[n] = '\0';
                 message_box(temp);
             }
         }
@@ -698,7 +699,7 @@ user* register_user() {
     new_user->password = (char *)malloc(30 * sizeof(char));
     new_user->last_save_of_game = (char *)malloc(50 * sizeof(char));
     new_user->music = (char *)malloc(30 * sizeof(char));
-    new_user->hero_color = COLOR_PAIR(YELLOW_ON_BLACK);
+    new_user->hero_color = WHITE_ON_BLACK;
     new_user->total_gold = 0;
     new_user->max_gold = 0;
     new_user->game_started = 0;
