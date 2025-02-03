@@ -4,6 +4,8 @@
 #include <json-c/json.h>
 #include <time.h>
 #include <locale.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 
 #ifndef menu_h_defined
 #define menu_h_defined
@@ -37,6 +39,7 @@
 #define BLUE_D_ON_BLACK 31
 
 extern WINDOW* remnant;
+extern Mix_Music *music;
 
 typedef struct user_type {
     int is_guest;
@@ -54,6 +57,8 @@ typedef struct user_type {
 } user;
 
 void set_colors ();
+int get_rand2(int l, int r);
+void play_music (char *name);
 void str_set(char **dest, char *src, int l);
 char* catstr(char *str1, char *str2);
 char* catnum(char *str, int x);

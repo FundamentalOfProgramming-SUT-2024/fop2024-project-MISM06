@@ -2,15 +2,22 @@
 #include <string.h>
 #include <stdlib.h>
 #include <json-c/json.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 
 #include "menu.h"
 #include "map.h"
 #include "movement.h"
 
+
 int main() {
     setlocale(LC_ALL, "");
     srand(time(0));
     initscr();
+
+    SDL_Init(SDL_INIT_AUDIO);
+    Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
+    play_music(NULL);
     curs_set(0);
     noecho();
     start_color();
@@ -21,6 +28,7 @@ int main() {
     cbreak();
     refresh();
     initial_page();
+    
     
     int opt, selected = 0;
     char *option[] = {"Continue game", "New game", "Log in", "Sign up", "Scoreboard", "Setting", "Profile","Quit game"};

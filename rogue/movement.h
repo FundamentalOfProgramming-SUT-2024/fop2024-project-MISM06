@@ -4,6 +4,8 @@
 #include <json-c/json.h>
 #include <time.h>
 #include <locale.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 
 #include "menu.h"
 #include "map.h"

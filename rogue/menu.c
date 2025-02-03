@@ -4,10 +4,13 @@
 #include <json-c/json.h>
 #include <time.h>
 #include <locale.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 
 #include "menu.h"
 
 WINDOW* remnant = NULL;
+Mix_Music *music = NULL;
 
 void set_colors () {
     init_color(PURE_YELLOW, 1000, 1000, 0);
@@ -36,6 +39,18 @@ void set_colors () {
 
 int get_rand2(int l, int r) {
     return l + (rand() % (r - l + 1));
+}
+
+void play_music (char *name) {
+    if (music) {
+        Mix_HaltMusic();
+        Mix_FreeMusic(music);
+    }
+    
+    if (name == NULL) {
+        music = Mix_LoadMUS("music/114_Hollow_Knight_Christopher_Larkin_David_Peacock_Augustine_Mayuga.mp3");
+    } else music = Mix_LoadMUS(name);
+    Mix_PlayMusic(music, -1);
 }
 
 void str_set(char **dest, char *src, int l) {
@@ -235,13 +250,35 @@ void open_setting (user *player) {
                 }
                 break;
             case 2:
-                message_box("coming soon!");
+                char *opt4[] = {"Hollow Knight (default)", "Dirtmouth", "City of tears", "Greenpath"};
+                int t3 = open_choosing(player, opt4, 4);
+                switch(t3) {
+                    case 0:
+                        play_music("music/114_Hollow_Knight_Christopher_Larkin_David_Peacock_Augustine_Mayuga.mp3");
+                        break;
+                    case 1:
+                        play_music("music/11_Dirtmouth_Christopher_Larkin_David_Peacock_Augustine_Mayuga.mp3");
+                        break;
+                    case 2:
+                        play_music("music/17_City_of_Tears_Christopher_Larkin_David_Peacock_Augustine_Mayuga.mp3");
+                        break;
+                    case 3:
+                        play_music("music/13_Greenpath_Christopher_Larkin_David_Peacock_Augustine_Mayuga.mp3");
+                        break;
+                    default : break;
+                }
                 break;
             case 3:
-                player->is_music_on = 0;
+                // player->is_music_on = 0;
+                if (music) {
+                    Mix_HaltMusic();
+                    Mix_FreeMusic(music);
+                    music = NULL;
+                }
                 break;
             case 4:
-                player->is_music_on = 1;
+                // player->is_music_on = 1;
+                play_music(NULL);
                 break;
             default : break;
         }
