@@ -314,7 +314,7 @@ void scoreboard_show (user *player) {
         total_gold[n] = json_object_get_int(json_object_object_get(prof, "total_gold"));
         max_gold[n] = json_object_get_int(json_object_object_get(prof, "max_gold"));
         game_ended[n] = json_object_get_int(json_object_object_get(prof, "game_ended"));
-        game_started[n] = total_gold[n] = json_object_get_int(json_object_object_get(prof, "total_gold"));
+        game_started[n] = json_object_get_int(json_object_object_get(prof, "game_started"));
         rank[n] = n;
         ++n;
     }
